@@ -49,12 +49,10 @@ typedef struct LFO {
 /* Utilities */
 static double timespec_to_double(struct timespec *t);
 static void double_to_timespec(struct timespec *t, double val);
-static double diff_timespec(struct timespec *t0, struct timespec *t1);
-static void substract_timespec(struct timespec *t0, struct timespec *t1);
-static double current_delta(struct timespec *t0);
+static double diff_timespec(struct timespec *t1, struct timespec *t0);
 
 void print_lfo(LFO *self);
-void print_timespec(struct timespec *t);
+void print_timespec(char *prefix, struct timespec *t);
 
 static void freeze(LFO *self);
 static void unfreeze(LFO *self);
@@ -180,7 +178,8 @@ static PyGetSetDef lfo_getset[] = {
 static PyTypeObject lfo_type = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "_pglfo.LFO",
-    .tp_doc = DOCSTRING_LFO,
+    .tp_doc = PyDoc_STR(DOCSTRING_LFO),
+    .tp_basicsize = sizeof(LFO),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = lfo_new,
@@ -228,23 +227,8 @@ static void double_to_timespec(struct timespec *t, double val) {
 }
 
 
-static double diff_timespec(struct timespec *t0, struct timespec *t1) {
+static double diff_timespec(struct timespec *t1, struct timespec *t0) {
     return (t1->tv_sec - t0->tv_sec) + (t1->tv_nsec - t0->tv_nsec) / T_FRACTION_SCALE;
-}
-
-
-static void substract_timespec(struct timespec *t0, struct timespec *t1) {
-    t0->tv_sec -= t1->tv_sec;
-    t0->tv_nsec -= t1->tv_nsec;
-}
-
-
-static double current_delta(struct timespec *t0) {
-    struct timespec now;
-
-    timespec_get(&now, TIME_UTC);
-
-    return diff_timespec(t0, &now);
 }
 
 
@@ -253,20 +237,13 @@ void print_lfo(LFO *self) {
 }
 
 
-void print_timespec(struct timespec *t) {
-    printf("TS:  ts=%ld:%ld  %f\n", t->tv_sec, t->tv_nsec, timespec_to_double(t));
+void print_timespec(char *prefix, struct timespec *t) {
+    printf("%s: %12dld : %12ld  %f\n", prefix, t->tv_sec, t->tv_nsec, timespec_to_double(t));
 }
 
-
-static double get_phase(struct timespec *t0, struct timespec *now, double period) {
-    double delta = diff_timespec(t0, now);
-
+static double get_phase(struct timespec *now, struct timespec *t0, double period) {
+    double delta = diff_timespec(now, t0);
     double result = WRAP(delta, period);
-    // printf("get_phase:\n");
-    // print_timespec(now);
-    // print_timespec(t0);
-    // printf("%f\n", result);
-
 
     return WRAP(delta, period);
 }
@@ -276,8 +253,9 @@ static void freeze(LFO *self) {
     if (self->frozen) return;
 
     struct timespec now;
+    timespec_get(&now, TIME_UTC);
 
-    self->frozen = get_phase(&self->t0, &now, self->period);
+    self->frozen = get_phase(&now, &self->t0, self->period);
     self->frozen = 1;
 }
 
@@ -297,8 +275,9 @@ static void unfreeze(LFO *self) {
 
 static double get_t(LFO *self) {
     struct timespec now;
+    timespec_get(&now, TIME_UTC);
 
-    return self->frozen ? self->_frozen_phase : get_phase(&self->t0, &now, self->period);
+    return self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
 }
 
 
@@ -307,16 +286,11 @@ static double get_normalized(LFO *self) {
 }
 
 
-
 static double get_sine(LFO *self) {
     struct timespec now;
-
     timespec_get(&now, TIME_UTC);
 
-    // printf("GET_SINE: ");
-    // print_timespec(&now);
-
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&self->t0, &now, self->period);
+    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
     double normalized = NORMALIZE(phase, self->period);
 
     return sin(normalized);
@@ -324,8 +298,9 @@ static double get_sine(LFO *self) {
 
 static double get_sawtooth(LFO *self) {
     struct timespec now;
+    timespec_get(&now, TIME_UTC);
 
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&self->t0, &now, self->period);
+    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
     double normalized = NORMALIZE(phase, self->period);
 
     return 1.0 - normalized;
@@ -333,8 +308,9 @@ static double get_sawtooth(LFO *self) {
 
 static double get_triangle(LFO *self) {
     struct timespec now;
+    timespec_get(&now, TIME_UTC);
 
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&self->t0, &now, self->period);
+    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
     double normalized = NORMALIZE(phase, self->period);
 
     if (normalized < 0.5) {
@@ -347,8 +323,9 @@ static double get_triangle(LFO *self) {
 
 static double get_square(LFO *self) {
     struct timespec now;
+    timespec_get(&now, TIME_UTC);
 
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&self->t0, &now, self->period);
+    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
     double normalized = NORMALIZE(phase, self->period);
 
     if (normalized < self->pw) {
@@ -399,7 +376,7 @@ static double get_inv_square(LFO *self) {
 static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     LFO *self;
 
-    self = (LFO *)type ->tp_alloc(type, 0);
+    self = (LFO *)type->tp_alloc(type, 0);
     if (self != NULL) {
 	/* Alloc members here if appropriate */
     }
@@ -411,14 +388,14 @@ static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) 
 static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     static char *kwargslist[] = {"", "pw", NULL};
 
+    self->period=1;
+    self->pw = 0.5;
     if (!PyArg_ParseTupleAndKeywords(
-		args, kwargs, "d|$d", kwargslist,
+		args, kwargs, "|d$d", kwargslist,
 		&self->period, &self->pw))
 	return -1;
 
     timespec_get(&self->t0, TIME_UTC);
-    // print_lfo(self);
-
 
     return 0;
 }
@@ -439,11 +416,18 @@ static void lfo_dealloc(LFO *self) {
 ----------------------------------------------------------------------*/
 
 static PyObject * lfo___repr__(LFO *self) {
-    return PyUnicode_FromFormat(
-	    "LFO(%S, pw=%S) at %p",
-	    PyFloat_FromDouble(self->period),
-	    PyFloat_FromDouble(self->pw),
-	    self);
+    struct timespec now;
+
+    timespec_get(&now, TIME_UTC);
+    return PyUnicode_FromFormat("LFO()");
+    // return PyUnicode_FromFormat(
+	    // "LFO(%S, pw=%S, t0=%S:%S) %S",
+	    // PyFloat_FromDouble(self->period),
+	    // PyFloat_FromDouble(self->pw),
+	    // PyLong_FromLong(self->t0.tv_sec),
+	    // PyLong_FromLong(self->t0.tv_nsec),
+	    // PyFloat_FromDouble(get_phase(&now, &self->t0, self->period))
+	    // );
 }
 
 
@@ -552,8 +536,7 @@ static PyObject * lfo_is_frozen(LFO *self) {
 
 
 static PyObject * lfo_getter_sine(LFO *self, void *closure) {
-    // printf("SINE: ");
-    // print_lfo(self);
+    double sine = get_sine(self);
     return PyFloat_FromDouble(get_sine(self));
 }
 
@@ -598,7 +581,6 @@ static PyObject * lfo_getter_inv_square(LFO *self, void *closure) {
      \__,_|\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
 
 ----------------------------------------------------------------------*/
-
 
 static PyObject * lfo_getter_period(LFO *self, void *closure) {
     return PyFloat_FromDouble(self->period);
@@ -707,7 +689,9 @@ PyMODINIT_FUNC PyInit__lfo(void) {
     if (m == NULL)
 	return NULL;
 
+    Py_INCREF(&lfo_type);
     if (PyModule_AddObjectRef(m, "LFO", (PyObject *)&lfo_type) < 0) {
+	Py_DECREF(&lfo_type);
 	Py_DECREF(m);
 	return NULL;
     }
