@@ -4,8 +4,7 @@ from time import sleep
 
 from lfo import LFO
 
-l = LFO(10)
+l = LFO()
 while True:
-    # print(f'{l.sine=}  {l.triangle=}  {l.sawtooth=}  {l.square=}')
-    print(f'{l=}  {l.sine=}')
+    print(f'{l.t=:12.8}  {l.normalized=:12.8}  {l.sine=:12.8}  {l.triangle=:12.8}  {l.sawtooth=:12.8}  {l.square=:12.8} {l.pw=}')
     sleep(0.25)
