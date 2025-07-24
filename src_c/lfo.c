@@ -181,7 +181,6 @@ static PyTypeObject lfo_type = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "_pglfo.LFO",
     .tp_doc = DOCSTRING_LFO,
-    // .tp_basicsize = sizeof(LFO),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = lfo_new,
