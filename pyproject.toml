@@ -21,7 +21,8 @@ license-files = ["LICENSE"]
 dependencies = [ ]
 
 [project.scripts]
-lfotest = "lfo.__main__:main"
+lfo-demo = "lfo.__main__:main"
+lfo-dump = "lfo.lfodump:main"
 
 [project.urls]
 homepage = "https://github.com/dickerdackel/lfo"
