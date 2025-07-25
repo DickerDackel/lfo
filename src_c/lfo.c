@@ -383,11 +383,7 @@ static double get_square(LFO *self) {
     double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
     double normalized = NORMALIZE(phase, self->period);
 
-    if (normalized < self->pw) {
-	return 0;
-    } else {
-	return 1;
-    }
+    return normalized < self->pw ? 1.0 : 0.0;
 }
 
 static double get_inv_sine(LFO *self) {
