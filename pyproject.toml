@@ -21,7 +21,6 @@ license-files = ["LICENSE"]
 dependencies = [ ]
 
 [project.scripts]
-lfo-demo = "lfo.__main__:main"
 lfo-dump = "lfo.lfodump:main"
 
 [project.urls]
