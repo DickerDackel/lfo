@@ -60,6 +60,7 @@ typedef struct LFO {
 static double timespec_to_double(struct timespec *t);
 static void double_to_timespec(struct timespec *t, double val);
 static double diff_timespec(struct timespec *t1, struct timespec *t0);
+static double get_phase(LFO *self);
 
 void print_lfo(LFO *self);
 void print_timespec(char *prefix, struct timespec *t);
@@ -277,21 +278,22 @@ static double diff_timespec(struct timespec *t1, struct timespec *t0) {
 }
 
 
-static double get_phase(struct timespec *now, struct timespec *t0, double period) {
-    double delta = diff_timespec(now, t0);
-    double result = WRAP(delta, period);
+static double get_phase(LFO *self) {
+    if (self->frozen) return self->_frozen_phase;
 
-    return WRAP(delta, period);
+    struct timespec now;
+    timespec_get(&now, TIME_UTC);
+
+    double delta = diff_timespec(&now, &self->t0);
+
+    return WRAP(delta, self->period);
 }
 
 
 static void freeze(LFO *self) {
     if (self->frozen) return;
 
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    self->frozen = get_phase(&now, &self->t0, self->period);
+    self->_frozen_phase = get_phase(self);
     self->frozen = 1;
 }
 
@@ -300,21 +302,18 @@ static void unfreeze(LFO *self) {
     if (! self->frozen) return;
 
     struct timespec now;
-
     timespec_get(&now, TIME_UTC);
 
     double t0 = timespec_to_double(&now) - self->_frozen_phase;
     double_to_timespec(&self->t0, t0);
 
+    self->_frozen_phase = 0;
     self->frozen = 0;
 }
 
 
 static double get_t(LFO *self) {
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    return self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
+    return get_phase(self);
 }
 
 
@@ -334,43 +333,30 @@ static int get_cycle(LFO *self) {
 
 
 static double get_sine(LFO *self) {
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
-    double normalized = NORMALIZE(phase, self->period) * 2 * M_PI;
+    double t = get_phase(self);
+    double normalized = NORMALIZE(t, self->period) * 2 * M_PI;
 
     return sin(normalized);
 }
 
 
 static double get_cosine(LFO *self) {
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
-    double normalized = NORMALIZE(phase, self->period) * 2 * M_PI;
+    double t = get_phase(self);
+    double normalized = NORMALIZE(t, self->period) * 2 * M_PI;
 
     return cos(normalized);
 }
 
 static double get_sawtooth(LFO *self) {
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
-    double normalized = NORMALIZE(phase, self->period);
+    double t = get_phase(self);
+    double normalized = NORMALIZE(t, self->period);
 
     return 1.0 - normalized;
 }
 
 static double get_triangle(LFO *self) {
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
-    double normalized = NORMALIZE(phase, self->period);
-    double res;
+    double t = get_phase(self);
+    double normalized = NORMALIZE(t, self->period);
 
     if (normalized < 0.5) {
 	return 2 * normalized;
@@ -381,11 +367,8 @@ static double get_triangle(LFO *self) {
 }
 
 static double get_square(LFO *self) {
-    struct timespec now;
-    timespec_get(&now, TIME_UTC);
-
-    double phase = self->frozen ? self->_frozen_phase : get_phase(&now, &self->t0, self->period);
-    double normalized = NORMALIZE(phase, self->period);
+    double t = get_phase(self);
+    double normalized = NORMALIZE(t, self->period);
 
     if (self->pw_offset < normalized && normalized < self->pw + self->pw_offset) {
 	return 1;
@@ -503,10 +486,7 @@ static void lfo_dealloc(LFO *self) {
 ----------------------------------------------------------------------*/
 
 static PyObject * lfo___repr__(LFO *self) {
-    struct timespec now;
-
-    timespec_get(&now, TIME_UTC);
-    double t = get_phase(&now, &self->t0, self->period);
+    double t = get_phase(self);
     return PyUnicode_FromFormat(
 	    "LFO(%S, pw=%S, pw_offset=%S) t=%S v=%s",
 	    PyFloat_FromDouble(self->period),
