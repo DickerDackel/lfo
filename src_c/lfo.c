@@ -463,7 +463,7 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     self->square_attenuverter = 1.0;
     self->square_offset = 0.0;
     if (!PyArg_ParseTupleAndKeywords(
-		args, kwargs, "|d$ddddddddd", kwargslist,
+		args, kwargs, "|d$ddddddddddd", kwargslist,
 		&self->period, &self->pw,
 		&self->sine_attenuverter, &self->sine_offset,
 		&self->cosine_attenuverter, &self->cosine_offset,
