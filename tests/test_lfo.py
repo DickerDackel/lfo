@@ -42,7 +42,7 @@ def test_defaults(lfo1):
     assert lfo1.square_attenuverter == 1.0
     assert lfo1.square_offset == 0.0
     assert lfo1.pw == 0.5
-    assert lfo1.pw_offset == 0.0
+    assert lfo1.pw_offset == 0.5
 
     assert lfo1.one_attenuverter == 1.0
     assert lfo1.one_offset == 0.0
@@ -150,6 +150,29 @@ def test_square(lfo1):
     assert approx(square, abs=0.025) == 1.0
     assert approx(inv_square, abs=0.025) == 0.0
 
+    lfo1.reset()
+    lfo1.pw = 0.2
+    lfo1.pw_offset = 0.4
+
+    sleep(0.39)
+    square, inv_square = lfo1.square, lfo1.inv_square
+    assert square == 0
+    assert inv_square == 1
+
+    sleep(0.02)
+    square, inv_square = lfo1.square, lfo1.inv_square
+    assert square == 1
+    assert inv_square == 0
+
+    sleep(0.18)
+    square, inv_square = lfo1.square, lfo1.inv_square
+    assert square == 1
+    assert inv_square == 0
+
+    sleep(0.02)
+    square, inv_square = lfo1.square, lfo1.inv_square
+    assert square == 0
+    assert inv_square == 1
 
 def test_one_and_zero(lfo1):
     one, inv_one, zero, inv_zero = lfo1.one, lfo1.inv_one, lfo1.zero, lfo1.inv_zero
