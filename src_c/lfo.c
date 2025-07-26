@@ -108,6 +108,8 @@ static PyObject * lfo_reset(LFO *self, PyObject *args, PyObject *kwargs);
 static PyObject * lfo_freeze(LFO *self);
 static PyObject * lfo_unfreeze(LFO *self);
 static PyObject * lfo_is_frozen(LFO *self);
+static PyObject * lfo_set_attenuverters(LFO *self, PyObject *o);
+static PyObject * lfo_set_offsets(LFO *self, PyObject *o);
 
 /* Class attributes */
 static PyObject * lfo_getter_period(LFO *self, void *closure);
@@ -200,6 +202,8 @@ static PyMethodDef lfo_methods[] = {
     {"freeze", (PyCFunction)lfo_freeze, METH_NOARGS, NULL},
     {"unfreeze", (PyCFunction)lfo_unfreeze, METH_NOARGS, NULL},
     {"is_frozen", (PyCFunction)lfo_is_frozen, METH_NOARGS, NULL},
+    {"set_attenuverters", (PyCFunction)lfo_set_attenuverters, METH_O, NULL},
+    {"set_offsets", (PyCFunction)lfo_set_offsets, METH_O, NULL},
     {NULL},
 };
 
@@ -673,6 +677,36 @@ static PyObject * lfo_is_frozen(LFO *self) {
 	Py_RETURN_TRUE;
     else
 	Py_RETURN_FALSE;
+}
+
+
+static PyObject * lfo_set_attenuverters(LFO *self, PyObject *o) {
+    double val = PyFloat_AsDouble(o);
+
+    self->sine_attenuverter = val;
+    self->cosine_attenuverter = val;
+    self->triangle_attenuverter = val;
+    self->sawtooth_attenuverter = val;
+    self->square_attenuverter = val;
+    self->one_attenuverter = val;
+    self->zero_attenuverter = val;
+
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * lfo_set_offsets(LFO *self, PyObject *o) {
+    double val = PyFloat_AsDouble(o);
+
+    self->sine_offset = val;
+    self->cosine_offset = val;
+    self->triangle_offset = val;
+    self->sawtooth_offset = val;
+    self->square_offset = val;
+    self->one_offset = val;
+    self->zero_offset = val;
+
+    Py_RETURN_NONE;
 }
 
 
