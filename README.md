@@ -180,6 +180,32 @@ This first scales the sine wave back to the range of -1 to 1, and then removes
 the position shift from the defaults.
 
 
+#### `lfo.pw` and `lfo.pw_offset`
+
+**NOTE**: Mighth be renamed to `square_pw` and `square_pw_offset`.
+
+*pw* stands for pulse width.  In a synth, it's the duration a signal is up or
+down.  By default, the square wave is up for half of the period, then switches
+to down.  It's pulse width (up) is 0.5.  Setting `lfo.pw = 1/3` instead will
+make the square wave generate a `1` for the first 3rd of the period, and a `0`
+for the remaining time.
+
+The `lfo.pw_offset` now shifts the start position of the *pulse*.  By default,
+it starts at the beginning of the period.  But if you would want a narrow
+pulse in the middle of the wave, you can shift the start.
+
+```python
+lfo = LFO(10, pw=2, pw_offset=4)
+```
+
+Will result in a square wave that return `0` until the start of the 4th
+second.  Then it will switch to `1` from second 4 to second 6.  Finally, it
+will be back to `0` from second 6 until the end of the period at second 10.
+
+So with `lfo.pw` you control the width of the "on-phase", and with
+`lfo.pw_offset` you control its position.
+
+
 ### Read-Only Status Attributes
 
 #### `lfo.t`, `lfo.normalized`
