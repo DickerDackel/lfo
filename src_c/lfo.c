@@ -68,9 +68,6 @@ static void double_to_timespec(struct timespec *t, double val);
 static double diff_timespec(struct timespec *t1, struct timespec *t0);
 static double get_phase(LFO *self);
 
-void print_lfo(LFO *self);
-void print_timespec(char *prefix, struct timespec *t);
-
 static void freeze(LFO *self);
 static void unfreeze(LFO *self);
 
