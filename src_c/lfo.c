@@ -398,10 +398,13 @@ static double get_square(LFO *self) {
     double t = get_phase(self);
     double normalized = NORMALIZE(t, self->period);
 
-    if (self->pw_offset < normalized && normalized < self->pw + self->pw_offset) {
-	return 1;
-    } else {
+    double pw_offset = self->pw_offset * self.period;
+    double pw = self.pw * self.period;
+
+    if (pw_offset < normalized && normalized < pw + pw_offset) {
 	return 0;
+    } else {
+	return 1;
     }
 }
 
@@ -491,10 +494,10 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     self->period = 1.0;
     self->pw = 0.5;
     self->pw_offset = 0.0;
-    self->sine_attenuverter = 0.5;
-    self->sine_offset = 0.5;
-    self->cosine_attenuverter = 0.5;
-    self->cosine_offset = 0.5;
+    self->sine_attenuverter = 1.0;
+    self->sine_offset = 0.0;
+    self->cosine_attenuverter = 1.0;
+    self->cosine_offset = 0.0;
     self->triangle_attenuverter = 1.0;
     self->triangle_offset = 0.0;
     self->sawtooth_attenuverter = 1.0;

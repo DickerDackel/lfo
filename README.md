@@ -18,7 +18,7 @@ lfo = LFO(period, *, ...)
 from lfo import LFO
 from time import sleep
 
-orbit = LFO(10, sine_attenuverter=0.0, sine_offset=0.0)
+orbit = LFO(10)
 while orbit.cycle < 3:
     print(f'{orbit.sine=} {orbit.cosine=}  {orbit.triangle=}  {orbit.sawtooth=}  {orbit.square=}')
     print(f'{orbit.inv_sine=} {orbit.inv_cosine=}  {orbit.inv_triangle=}  {orbit.inv_sawtooth=}  {orbit.inv_square=}')
@@ -85,10 +85,10 @@ values:
 
 #### Waveform Control Parameters
 
-* `lfo.sine_attenuverter: float = 0.5`
-* `lfo.sine_offset: float = 0.5`
-* `lfo.cosine_attenuverter: float = 0.5`
-* `lfo.cosine_offset: float = 0.5`
+* `lfo.sine_attenuverter: float = 1.0`
+* `lfo.sine_offset: float = 0.0`
+* `lfo.cosine_attenuverter: float = 1.0`
+* `lfo.cosine_offset: float = 0.0`
 * `lfo.triangle_attenuverter: float = 1.0`
 * `lfo.triangle_offset: float = 0.0`
 * `lfo.sawtooth_attenuverter: float = 1.0`
@@ -137,11 +137,10 @@ All wave forms come with an inverted version named `inv_<waveform>`.
 
 Your off-the-mill sine and cosine waves.
 
-**Note** that **as of now** these are by default configured so they cycle
-between 0 and 1, not -1 to 1.
-
-**WARNING** This might change.  We're at v0.0.2 as of writing this, and
-practical use must show which configuration for these two is most common.
+**Note**: In the first iteration of this library, I thought it was a good idea
+to position the sine and cosine waves in the range or 0 - 1.  This idea does
+not work well in reality, so they now deliver the values any programmer will
+expect.
 
 See `<waveform>_attenuverter` and `<waveform>_offset` below on how to change
 this.
@@ -165,10 +164,10 @@ period.
 
     `lfo.square`, `lfo.inv_square`
 
-The square wave holds 1 over a given time that defaults to half the period,
-then it switches to 0.
+The square wave holds 0 over a given time that defaults to half the period,
+then it switches to 1.
 
-See `lfo.pw` and `lfo.pw_offset` below for configuration options.
+See `lfo.pw` and `lfo.pw_offset` below for some configuration options.
 
 
 #### One, Zero
@@ -183,6 +182,11 @@ interface.
 
 ### Waveform Control Parameters
 
+These settings all control the different wave forms.  They are configurable
+both at class instantiation, as well as in runtime.
+
+The consequence of that is that they can be modulated by another lfo...
+
 #### `<waveform>_attenuverter`, `<waveform>.offset`
 
 All waveforms offer these two modifiers.  They can passed to the `LFO()` init
@@ -192,12 +196,14 @@ The weird term _attenuverter_ also comes from the world of modular synths and
 is a combination of _attenuator_ - a scale factor - and _inverter_ - because a
 negative scale will invert the wave.
 
-For `sine_attenuverter` and `cosine_attenuverter` are 0.5 by default, so the
-sine and cosine waves return values between 0 and 1 like all the others.  See
-**WARNING** above.
+A good use case for these settings are the sine and cosine waves, which return
+values between -1 and 1.  If you want to use them for scaling something
+instead, you set their attenuverter to 0.5.  Now they return values from -0.5
+to 0.5.  Then you offset them by 0.5 and you have your scaling factor.
 
-To reset the sine and cosine waves back to their origin, simply set their
-modifiers like this:
+So the attenuverter and offset alwasy return
+
+    `wave * attenuverter + offset`
 
 ```
 lfo = LFO(period, sine_attenuverter=1, sine_offset=0, ...)
