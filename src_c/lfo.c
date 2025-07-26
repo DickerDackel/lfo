@@ -406,119 +406,119 @@ static double get_triangle(LFO *self) {
 }
 
 static double get_square(LFO *self) {
-    double t = get_normalized(self);
+        double t = get_normalized(self);
 
-    if (self->pw_offset < t && t < self->pw + self->pw_offset) {
-	return 0;
-    } else {
-	return 1;
-    }
-}
-
-static double get_one(LFO *self) {
-    return 1.0;
-}
-
-static double get_zero(LFO *self) {
-    return 0.0;
-}
-
-static double get_inv_sine(LFO *self) {
-    return -get_sine(self);
-}
-
-static double get_inv_cosine(LFO *self) {
-    return -get_cosine(self);
-}
-
-static double get_inv_triangle(LFO *self) {
-    return 1 - get_triangle(self);
-}
-
-static double get_inv_sawtooth(LFO *self) {
-    return 1 - get_sawtooth(self);
-}
-
-static double get_inv_square(LFO *self) {
-    return 1 - get_square(self);
-}
-
-static double get_inv_one(LFO *self) {
-    return 1 - get_one(self);
-}
-
-static double get_inv_zero(LFO *self) {
-    return 1 - get_zero(self);
-}
-
-
-/*----------------------------------------------------------------------
-      __                  _   _                 
-     / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-    | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
-    |  _| |_| | | | | (__| |_| | (_) | | | \__ \
-    |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
-                                            
-----------------------------------------------------------------------*/
-
-/* None */
-
-/*----------------------------------------------------------------------
-	  _                     _       __ 
-      ___| | __ _ ___ ___    __| | ___ / _|
-     / __| |/ _` / __/ __|  / _` |/ _ \ |_ 
-    | (__| | (_| \__ \__ \ | (_| |  __/  _|
-     \___|_|\__,_|___/___/  \__,_|\___|_|  
-                                       
-----------------------------------------------------------------------*/
-
-
-static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-    LFO *self;
-
-    self = (LFO *)type->tp_alloc(type, 0);
-    if (self != NULL) {
-	/* Alloc members here if appropriate */
+        if (t >= self->pw_offset && t <= self->pw + self->pw_offset) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 
-    return (PyObject *)self;
-}
+    static double get_one(LFO *self) {
+        return 1.0;
+    }
+
+    static double get_zero(LFO *self) {
+        return 0.0;
+    }
+
+    static double get_inv_sine(LFO *self) {
+        return -get_sine(self);
+    }
+
+    static double get_inv_cosine(LFO *self) {
+        return -get_cosine(self);
+    }
+
+    static double get_inv_triangle(LFO *self) {
+        return 1 - get_triangle(self);
+    }
+
+    static double get_inv_sawtooth(LFO *self) {
+        return 1 - get_sawtooth(self);
+    }
+
+    static double get_inv_square(LFO *self) {
+        return 1 - get_square(self);
+    }
+
+    static double get_inv_one(LFO *self) {
+        return 1 - get_one(self);
+    }
+
+    static double get_inv_zero(LFO *self) {
+        return 1 - get_zero(self);
+    }
 
 
-static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
-    static char *kwargslist[] = {
-	"period", "cycles", "frequency",
-	"sine_attenuverter", "sine_offset",
-	"cosine_attenuverter", "cosine_offset",
-	"triangle_attenuverter", "triangle_offset",
-	"sawtooth_attenuverter", "sawtooth_offset",
-        "pw", "pw_offset",
-	"square_attenuverter", "square_offset",
-	"one_attenuverter", "one_offset",
-	"zero_attenuverter", "zero_offset",
-	NULL};
+    /*----------------------------------------------------------------------
+          __                  _   _                 
+         / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+        | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
+        |  _| |_| | | | | (__| |_| | (_) | | | \__ \
+        |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
+                                                
+    ----------------------------------------------------------------------*/
 
-    timespec_get(&self->t0, TIME_UTC);
-    self->period = 1.0;
+    /* None */
 
-    self->cycles = 0;
-    self->_cycles_left = 0;
+    /*----------------------------------------------------------------------
+              _                     _       __ 
+          ___| | __ _ ___ ___    __| | ___ / _|
+         / __| |/ _` / __/ __|  / _` |/ _ \ |_ 
+        | (__| | (_| \__ \__ \ | (_| |  __/  _|
+         \___|_|\__,_|___/___/  \__,_|\___|_|  
+                                           
+    ----------------------------------------------------------------------*/
 
-    self->frozen = 0;
-    self->_frozen_phase = 0.0;
 
-    self->sine_attenuverter = 1.0;
-    self->sine_offset = 0.0;
-    self->cosine_attenuverter = 1.0;
-    self->cosine_offset = 0.0;
-    self->triangle_attenuverter = 1.0;
-    self->triangle_offset = 0.0;
-    self->sawtooth_attenuverter = 1.0;
-    self->sawtooth_offset = 0.0;
-    self->square_attenuverter = 1.0;
-    self->square_offset = 0.0;
-    self->pw = 0.5;
-    self->pw_offset = 0.0;
+    static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
+        LFO *self;
+
+        self = (LFO *)type->tp_alloc(type, 0);
+        if (self != NULL) {
+            /* Alloc members here if appropriate */
+        }
+
+        return (PyObject *)self;
+    }
+
+
+    static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
+        static char *kwargslist[] = {
+            "period", "cycles", "frequency",
+            "sine_attenuverter", "sine_offset",
+            "cosine_attenuverter", "cosine_offset",
+            "triangle_attenuverter", "triangle_offset",
+            "sawtooth_attenuverter", "sawtooth_offset",
+            "pw", "pw_offset",
+            "square_attenuverter", "square_offset",
+            "one_attenuverter", "one_offset",
+            "zero_attenuverter", "zero_offset",
+            NULL};
+
+        timespec_get(&self->t0, TIME_UTC);
+        self->period = 1.0;
+
+        self->cycles = 0;
+        self->_cycles_left = 0;
+
+        self->frozen = 0;
+        self->_frozen_phase = 0.0;
+
+        self->sine_attenuverter = 1.0;
+        self->sine_offset = 0.0;
+        self->cosine_attenuverter = 1.0;
+        self->cosine_offset = 0.0;
+        self->triangle_attenuverter = 1.0;
+        self->triangle_offset = 0.0;
+        self->sawtooth_attenuverter = 1.0;
+        self->sawtooth_offset = 0.0;
+        self->square_attenuverter = 1.0;
+        self->square_offset = 0.0;
+        self->pw = 0.5;
+        self->pw_offset = 0.5;
     self->one_attenuverter = 1.0;
     self->one_offset = 0.0;
     self->zero_attenuverter = 1.0;
