@@ -47,11 +47,15 @@ typedef struct LFO {
     double triangle_attenuverter;
     double sawtooth_attenuverter;
     double square_attenuverter;
+    double one_attenuverter;
+    double zero_attenuverter;
     double sine_offset;
     double cosine_offset;
     double triangle_offset;
     double sawtooth_offset;
     double square_offset;
+    double one_offset;
+    double zero_offset;
     int frozen;
     double _frozen_phase;
 } LFO;
@@ -73,12 +77,16 @@ static double get_cosine(LFO *self);
 static double get_triangle(LFO *self);
 static double get_sawtooth(LFO *self);
 static double get_square(LFO *self);
+static double get_one(LFO *self);
+static double get_zero(LFO *self);
 
 static double get_inv_sine(LFO *self);
 static double get_inv_cosine(LFO *self);
 static double get_inv_triangle(LFO *self);
 static double get_inv_sawtooth(LFO *self);
 static double get_inv_square(LFO *self);
+static double get_inv_one(LFO *self);
+static double get_inv_zero(LFO *self);
 
 /* Module level functions */
 static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
@@ -122,6 +130,10 @@ static PyObject * lfo_getter_sawtooth_attenuverter(LFO *self, void *closure);
 static int lfo_setter_sawtooth_attenuverter(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_square_attenuverter(LFO *self, void *closure);
 static int lfo_setter_square_attenuverter(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_one_attenuverter(LFO *self, void *closure);
+static int lfo_setter_one_attenuverter(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_zero_attenuverter(LFO *self, void *closure);
+static int lfo_setter_zero_attenuverter(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_sine_offset(LFO *self, void *closure);
 static int lfo_setter_sine_offset(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_cosine_offset(LFO *self, void *closure);
@@ -132,6 +144,10 @@ static PyObject * lfo_getter_sawtooth_offset(LFO *self, void *closure);
 static int lfo_setter_sawtooth_offset(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_square_offset(LFO *self, void *closure);
 static int lfo_setter_square_offset(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_one_offset(LFO *self, void *closure);
+static int lfo_setter_one_offset(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_zero_offset(LFO *self, void *closure);
+static int lfo_setter_zero_offset(LFO *self, PyObject *val, void *closure);
 
 static PyObject * lfo_getter_pw(LFO *self, void *closure);
 static int lfo_setter_pw(LFO *self, PyObject *val, void *closure);
@@ -143,12 +159,16 @@ static PyObject * lfo_getter_cosine(LFO *self, void *closure);
 static PyObject * lfo_getter_triangle(LFO *self, void *closure);
 static PyObject * lfo_getter_sawtooth(LFO *self, void *closure);
 static PyObject * lfo_getter_square(LFO *self, void *closure);
+static PyObject * lfo_getter_one(LFO *self, void *closure);
+static PyObject * lfo_getter_zero(LFO *self, void *closure);
 
 static PyObject * lfo_getter_inv_sine(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_cosine(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_triangle(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_sawtooth(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_square(LFO *self, void *closure);
+static PyObject * lfo_getter_inv_one(LFO *self, void *closure);
+static PyObject * lfo_getter_inv_zero(LFO *self, void *closure);
 
 /* Module init */
 PyMODINIT_FUNC PyInit__lfo(void);
@@ -194,11 +214,15 @@ static PyGetSetDef lfo_getset[] = {
     {"triangle_attenuverter", (getter)lfo_getter_triangle_attenuverter, (setter)lfo_setter_triangle_attenuverter, NULL, NULL},
     {"sawtooth_attenuverter", (getter)lfo_getter_sawtooth_attenuverter, (setter)lfo_setter_sawtooth_attenuverter, NULL, NULL},
     {"square_attenuverter", (getter)lfo_getter_square_attenuverter, (setter)lfo_setter_square_attenuverter, NULL, NULL},
+    {"one_attenuverter", (getter)lfo_getter_one_attenuverter, (setter)lfo_setter_one_attenuverter, NULL, NULL},
+    {"zero_attenuverter", (getter)lfo_getter_zero_attenuverter, (setter)lfo_setter_zero_attenuverter, NULL, NULL},
     {"sine_offset", (getter)lfo_getter_sine_offset, (setter)lfo_setter_sine_offset, NULL, NULL},
     {"cosine_offset", (getter)lfo_getter_cosine_offset, (setter)lfo_setter_cosine_offset, NULL, NULL},
     {"triangle_offset", (getter)lfo_getter_triangle_offset, (setter)lfo_setter_triangle_offset, NULL, NULL},
     {"sawtooth_offset", (getter)lfo_getter_sawtooth_offset, (setter)lfo_setter_sawtooth_offset, NULL, NULL},
     {"square_offset", (getter)lfo_getter_square_offset, (setter)lfo_setter_square_offset, NULL, NULL},
+    {"one_offset", (getter)lfo_getter_one_offset, (setter)lfo_setter_one_offset, NULL, NULL},
+    {"zero_offset", (getter)lfo_getter_zero_offset, (setter)lfo_setter_zero_offset, NULL, NULL},
     {"pw", (getter)lfo_getter_pw, (setter)lfo_setter_pw, NULL, NULL},
     {"pw_offset", (getter)lfo_getter_pw_offset, (setter)lfo_setter_pw_offset, NULL, NULL},
 
@@ -211,12 +235,16 @@ static PyGetSetDef lfo_getset[] = {
     {"triangle", (getter)lfo_getter_triangle, NULL, NULL, NULL},
     {"sawtooth", (getter)lfo_getter_sawtooth, NULL, NULL, NULL},
     {"square", (getter)lfo_getter_square, NULL, NULL, NULL},
+    {"one", (getter)lfo_getter_one, NULL, NULL, NULL},
+    {"zero", (getter)lfo_getter_zero, NULL, NULL, NULL},
 
     {"inv_sine", (getter)lfo_getter_inv_sine, NULL, NULL, NULL},
     {"inv_cosine", (getter)lfo_getter_inv_cosine, NULL, NULL, NULL},
     {"inv_triangle", (getter)lfo_getter_inv_triangle, NULL, NULL, NULL},
     {"inv_sawtooth", (getter)lfo_getter_inv_sawtooth, NULL, NULL, NULL},
     {"inv_square", (getter)lfo_getter_inv_square, NULL, NULL, NULL},
+    {"inv_one", (getter)lfo_getter_inv_one, NULL, NULL, NULL},
+    {"inv_zero", (getter)lfo_getter_inv_zero, NULL, NULL, NULL},
     {NULL},
 };
 
@@ -377,6 +405,15 @@ static double get_square(LFO *self) {
     }
 }
 
+static double get_one(LFO *self) {
+    return 1.0;
+    }
+}
+
+static double get_zero(LFO *self) {
+    return 0.0;
+}
+
 static double get_inv_sine(LFO *self) {
     return -get_sine(self);
 }
@@ -395,6 +432,14 @@ static double get_inv_sawtooth(LFO *self) {
 
 static double get_inv_square(LFO *self) {
     return 1 - get_square(self);
+}
+
+static double get_inv_one(LFO *self) {
+    return 1 - get_one(self);
+}
+
+static double get_inv_zero(LFO *self) {
+    return 1 - get_zero(self);
 }
 
 
@@ -439,6 +484,8 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
 	"triangle_attenuverter", "triangle_offset",
 	"sawtooth_attenuverter", "sawtooth_offset",
 	"square_attenuverter", "square_offset",
+	"one_attenuverter", "one_offset",
+	"zero_attenuverter", "zero_offset",
 	NULL};
 
     self->period = 1.0;
@@ -454,6 +501,10 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     self->sawtooth_offset = 0.0;
     self->square_attenuverter = 1.0;
     self->square_offset = 0.0;
+    self->one_attenuverter = 1.0;
+    self->one_offset = 0.0;
+    self->zero_attenuverter = 1.0;
+    self->zero_offset = 0.0;
     if (!PyArg_ParseTupleAndKeywords(
 		args, kwargs, "|d$dddddddddddd", kwargslist,
 		&self->period,
@@ -462,7 +513,9 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
 		&self->cosine_attenuverter, &self->cosine_offset,
 		&self->triangle_attenuverter, &self->triangle_offset,
 		&self->sawtooth_attenuverter, &self->sawtooth_offset,
-		&self->square_attenuverter, &self->square_offset))
+		&self->square_attenuverter, &self->square_offset,
+		&self->one_attenuverter, &self->one_offset,
+		&self->zero_attenuverter, &self->zero_offset))
 	return -1;
 
     timespec_get(&self->t0, TIME_UTC);
@@ -625,6 +678,16 @@ static PyObject * lfo_getter_square(LFO *self, void *closure) {
 }
 
 
+static PyObject * lfo_getter_one(LFO *self, void *closure) {
+    return PyFloat_FromDouble(get_one(self) * self->one_attenuverter + self->one_offset);
+}
+
+
+static PyObject * lfo_getter_zero(LFO *self, void *closure) {
+    return PyFloat_FromDouble(get_zero(self) * self->zero_attenuverter + self->zero_offset);
+}
+
+
 static PyObject * lfo_getter_inv_sine(LFO *self, void *closure) {
     return PyFloat_FromDouble(get_inv_sine(self) * self->sine_attenuverter + self->sine_offset);
 }
@@ -647,6 +710,16 @@ static PyObject * lfo_getter_inv_sawtooth(LFO *self, void *closure) {
 
 static PyObject * lfo_getter_inv_square(LFO *self, void *closure) {
     return PyFloat_FromDouble(get_inv_square(self) * self->square_attenuverter + self->square_offset);
+}
+
+
+static PyObject * lfo_getter_inv_one(LFO *self, void *closure) {
+    return PyFloat_FromDouble(get_inv_one(self) * self->one_attenuverter + self->one_offset);
+}
+
+
+static PyObject * lfo_getter_inv_zero(LFO *self, void *closure) {
+    return PyFloat_FromDouble(get_inv_zero(self) * self->zero_attenuverter + self->zero_offset);
 }
 
 
@@ -759,6 +832,28 @@ static int lfo_setter_square_attenuverter(LFO *self, PyObject *val, void *closur
     return 0;
 }
 
+static PyObject * lfo_getter_one_attenuverter(LFO *self, void *closure) {
+    return PyFloat_FromDouble(self->one_attenuverter);
+}
+
+
+static int lfo_setter_one_attenuverter(LFO *self, PyObject *val, void *closure) {
+    self->one_attenuverter = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
+static PyObject * lfo_getter_zero_attenuverter(LFO *self, void *closure) {
+    return PyFloat_FromDouble(self->zero_attenuverter);
+}
+
+
+static int lfo_setter_zero_attenuverter(LFO *self, PyObject *val, void *closure) {
+    self->zero_attenuverter = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
 
 static PyObject * lfo_getter_sine_offset(LFO *self, void *closure) {
     return PyFloat_FromDouble(self->sine_offset);
@@ -814,6 +909,28 @@ static PyObject * lfo_getter_square_offset(LFO *self, void *closure) {
 
 static int lfo_setter_square_offset(LFO *self, PyObject *val, void *closure) {
     self->square_offset = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
+
+static PyObject * lfo_getter_one_offset(LFO *self, void *closure) {
+    return PyFloat_FromDouble(self->one_offset);
+}
+
+static int lfo_setter_one_offset(LFO *self, PyObject *val, void *closure) {
+    self->one_offset = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
+
+static PyObject * lfo_getter_zero_offset(LFO *self, void *closure) {
+    return PyFloat_FromDouble(self->zero_offset);
+}
+
+static int lfo_setter_zero_offset(LFO *self, PyObject *val, void *closure) {
+    self->zero_offset = PyFloat_AsDouble(val);
 
     return 0;
 }

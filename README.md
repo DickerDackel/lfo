@@ -33,12 +33,15 @@ that doesn't stop and that you can pull out values from.  The simplest form is
 probably a sine wave.  Regardless of how often you travel along the circle,
 you always get consistent and reproducible values out of it.
 
-But LFOs come in many different shapes, 4 of which are implemented here:
+But LFOs come in many different shapes.  Here are the ones implemented right
+now, but I'm open to suggestions to extend this list:
 
 * A sine wave (and a cosine wave that I don't count extra)
 * A triangular wave
 * A sawtooth wave
 * A square wave
+* A wave that always outputs 1
+* A wave that always outputs 0
 * The inverse of all these
 
 The lfo registers the start time of its instantiation.  Its constructor
@@ -76,6 +79,8 @@ values:
 * `lfo.triangle: float`, `lfo.inv_triangle: float`
 * `lfo.sawtooth: float`, `lfo.inv_sawtooth: float`
 * `lfo.square: float`, `lfo.inv_square: float`
+* `lfo.one: float`, `lfo.inv_one: float`
+* `lfo.zero: float`, `lfo.inv_zero: float`
 
 
 #### Waveform Control Parameters
@@ -90,6 +95,10 @@ values:
 * `lfo.sawtooth_offset: float = 0.0`
 * `lfo.square_attenuverter: float = 1.0`
 * `lfo.square_offset: float = 0.0`
+* `lfo.one_attenuverter: float = 1.0`
+* `lfo.one_offset: float = 0.0`
+* `lfo.zero_attenuverter: float = 1.0`
+* `lfo.zero_offset: float = 0.0`
 * `lfo.pw: float = 0.5`
 * `lfo.pw_offset: float = 0.0`
 
@@ -124,6 +133,8 @@ All wave forms come with an inverted version named `inv_<waveform>`.
 
 #### Sine, Cosine (And important configuration parameters!)
 
+    `lfo.sine`, `lfo.cosine`, `lfo.inv_sine`, `lfo.inv_cosine`
+
 Your off-the-mill sine and cosine waves.
 
 **Note** that **as of now** these are by default configured so they cycle
@@ -137,10 +148,14 @@ this.
 
 #### Triangle
 
+    `lfo.triangle`, `lfo.inv_triangle`
+
 A triangle wave ramps up from 0 to 1 over half of the period.  Then it ramps
 down back to zero for the second half, creating a triangular shape.
 
 #### Sawtooth
+
+    `lfo.sawtooth`, `lfo.inv_sawtooth`
 
 A sawtooth wave starts at 1 and ramps down to 0 over the full length of the
 period.
@@ -148,10 +163,22 @@ period.
 
 #### Square
 
+    `lfo.square`, `lfo.inv_square`
+
 The square wave holds 1 over a given time that defaults to half the period,
 then it switches to 0.
 
 See `lfo.pw` and `lfo.pw_offset` below for configuration options.
+
+
+#### One, Zero
+
+    `lfo.one`, `lfo.inv_one`, `lfo.zero`, `lfo.inv_zero`
+
+While it may sound useless to have an object that puts out a constant value,
+one and zero can be very useful if you want to deactivate an changing
+behaviour in an object without adding a special if-clause or changing its
+interface.
 
 
 ### Waveform Control Parameters
@@ -179,6 +206,7 @@ lfo = LFO(period, sine_attenuverter=1, sine_offset=0, ...)
 This first scales the sine wave back to the range of -1 to 1, and then removes
 the position shift from the defaults.
 
+Even `lfo.one` and `lfo.zero` are impacted by these.
 
 #### `lfo.pw` and `lfo.pw_offset`
 
