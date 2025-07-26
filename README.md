@@ -1,8 +1,8 @@
 # LFO - A Low Frequency Oscillator
 
-_One of my many interests is playing the modular synth.  That instrument is not
-imaginable without the help of LFOs.  They are used to control every
-controlable knob or slider, they control the speed of oscillators, the fading
+_One of my many interests is playing the modular synth.  That instrument is
+not imaginable without the help of LFOs.  They are used to control every
+controllable knob or slider, they control the speed of oscillators, the fading
 in and out of filters, they can control each other, the possibilities are
 literally endless._
 
@@ -41,17 +41,17 @@ But LFOs come in many different shapes, 4 of which are implemented here:
 * A square wave
 * The inverse of all these
 
-The lfo registers the start time of its instantiation.  It's constructor
+The lfo registers the start time of its instantiation.  Its constructor
 receives a period, the duration of one single wave until the wave repeats.
 
 When ever you now query a value from the lfo, it gives you the proper
-functionn result of that wave for this specific point in time.  Also, you can
+function result of that wave for this specific point in time.  Also, you can
 query all of the wave forms from the same lfo.
 
-Ther'e's one important difference to the lfo you might know from your DAW or
+There's one important difference to the lfo you might know from your DAW or
 synth.  Since most programmers will use these to ramp other values by
 multiplication, this lfo is not centered around the 0 point of the y axis,
-but all waves are positioned so, that they return a value between 0 and 1.
+but all waves are positioned so that they return a value between 0 and 1.
 There are per-wave parameters to change this.
 
 
@@ -207,7 +207,7 @@ handful of methods_
 Resets the start time of the lfo to the current time.  With short `periods`,
 this will most likely not be relevant, but an lfo can also run for a very long
 time, e.g. to ramp up enemy spawns over a level, and you don't want to have
-your deep in its cycle when the next level begins.
+it deep in its cycle when the next level begins.
 
 #### `lfo.freeze() -> None`, `lfo.unfreeze() -> None`, `lfo.is_frozen() -> bool`
 
@@ -288,10 +288,10 @@ renderer = sdl2.Renderer(window)
 renderer.logical_size = SCREEN.size
 
 RADIUS = 256
-SATTELITE_RADIUS = 32
+SATELITE_RADIUS = 32
 
 orbit = LFO(10, sine_offset=0.0, cosine_offset=0.0)
-sattelite = LFO(5, sine_offset=0.0, cosine_offset=0.0)
+satelite = LFO(5, sine_offset=0.0, cosine_offset=0.0)
 speedo = LFO(20, sine_attenuverter=0.3, sine_offset=1.0, cosine_attenuverter=0.3, cosine_offset=1.0)
 color = LFO(3)
 
@@ -320,15 +320,15 @@ while running:
     renderer.draw_color = ('yellow', 'magenta')[int(color.square)]
     renderer.draw_rect(rect.move_to(center=(round(x), round(y))))
 
-    x += sattelite.cosine * SATTELITE_RADIUS
-    y += sattelite.sine * SATTELITE_RADIUS
+    x += satelite.cosine * SATELITE_RADIUS
+    y += satelite.sine * SATELITE_RADIUS
     renderer.draw_color = ('cyan', 'orange')[int(color.square)]
     renderer.draw_rect(rect.move_to(center=(round(x), round(y))))
 
-    sattelite.period = speedo.sine
+    satelite.period = speedo.sine
 
-    x = orbit.sine * 2 * RADIUS + SCREEN.centerx + sattelite.sine * SATTELITE_RADIUS
-    y = orbit.cosine * 2 * RADIUS + SCREEN.centery + sattelite.cosine * SATTELITE_RADIUS
+    x = orbit.sine * 2 * RADIUS + SCREEN.centerx + satelite.sine * SATELITE_RADIUS
+    y = orbit.cosine * 2 * RADIUS + SCREEN.centery + satelite.cosine * SATELITE_RADIUS
     renderer.draw_color = ('green', 'red')[int(color.square)]
     renderer.draw_rect(rect.scale_by(2).move_to(center=(round(x), round(y))))
 
