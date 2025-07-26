@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 #include <time.h>
 #include <Python.h>
 
@@ -70,6 +71,9 @@ static double get_phase(LFO *self);
 
 static void freeze(LFO *self);
 static void unfreeze(LFO *self);
+static double get_t(LFO *self);
+static double get_normalized(LFO *self);
+static int get_cycle(LFO *self);
 
 static double get_sine(LFO *self);
 static double get_cosine(LFO *self);
@@ -348,10 +352,10 @@ static void unfreeze(LFO *self) {
 
 
 static double get_t(LFO *self) {
-    if (self->cycles && self->cycle == self->cycles) {
-        return self->period;
-    } else {
+    if ((self->cycles == 0) || (self->cycles && get_cycle(self) < self->cycles)) {
         return get_phase(self);
+    } else {
+        return self->period - DBL_MIN;
     }
 }
 
@@ -404,10 +408,7 @@ static double get_triangle(LFO *self) {
 static double get_square(LFO *self) {
     double t = get_normalized(self);
 
-    double pw_offset = self->pw_offset * self->period;
-    double pw = self->pw * self->period;
-
-    if (pw_offset < t && t < pw + pw_offset) {
+    if (self->pw_offset < t && t < self->pw + self->pw_offset) {
 	return 0;
     } else {
 	return 1;
@@ -502,7 +503,6 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
 
     self->cycles = 0;
     self->_cycles_left = 0;
-    self->cycle = 0;
 
     self->frozen = 0;
     self->_frozen_phase = 0.0;
@@ -596,10 +596,10 @@ static PyObject * lfo___iter__(PyObject *self) {
 }
 
 static PyObject * lfo___next__(LFO *self) {
-    if (self->cycles && self->cycles == self->cycle) {
-        return NULL;
-    } else {
+    if ((self->cycles == 0) || (self->cycles && get_cycle(self) < self->cycles)) {
         return PyFloat_FromDouble(get_sine(self));
+    } else {
+        return NULL;
     }
 }
 
