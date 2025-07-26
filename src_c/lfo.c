@@ -28,8 +28,6 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define T_FRACTION_SCALE 1000000000.0
-#define WRAP(delta, period) (fmod(delta, period))
-#define NORMALIZE(delta, period) (delta / period)
 
 #ifndef M_PI
 # define M_PI 3.1415926535897932384626433832795028841971693993751058209749445923078
@@ -37,11 +35,15 @@
 
 typedef struct LFO {
     PyObject_HEAD
+
     struct timespec t0;
-    int cycle;
     double period;
     int frozen;
     double _frozen_phase;
+    int cycle;
+    int cycles;
+    int _cycles_left;
+
     double sine_attenuverter;
     double sine_offset;
     double cosine_attenuverter;
@@ -113,6 +115,8 @@ static PyObject * lfo_is_frozen(LFO *self);
 /* Class attributes */
 static PyObject * lfo_getter_period(LFO *self, void *closure);
 static int lfo_setter_period(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_cycles(LFO *self, void *closure);
+static int lfo_setter_cycles(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_frequency(LFO *self, void *closure);
 static int lfo_setter_frequency(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_t(LFO *self, void *closure);
@@ -206,6 +210,7 @@ static PyMethodDef lfo_methods[] = {
 /* Properties */
 static PyGetSetDef lfo_getset[] = {
     {"period", (getter)lfo_getter_period, (setter)lfo_setter_period, NULL, NULL},
+    {"cycles", (getter)lfo_getter_cycles, (setter)lfo_setter_cycles, NULL, NULL},
     {"frequency", (getter)lfo_getter_frequency, (setter)lfo_setter_frequency, NULL, NULL},
     {"frozen", (getter)lfo_getter_frozen, (setter)lfo_setter_frozen, NULL, NULL},
 
@@ -315,7 +320,7 @@ static double get_phase(LFO *self) {
 
     double delta = diff_timespec(&now, &self->t0);
 
-    return WRAP(delta, self->period);
+    return fmod(delta, self->period);
 }
 
 
@@ -342,7 +347,11 @@ static void unfreeze(LFO *self) {
 
 
 static double get_t(LFO *self) {
-    return get_phase(self);
+    if (self->cycles && self->cycle == self->cycles) {
+        return self->period;
+    } else {
+        return get_phase(self);
+    }
 }
 
 
@@ -357,52 +366,47 @@ static int get_cycle(LFO *self) {
 
     double delta = diff_timespec(&now, &self->t0);
 
-    return (int)(delta / self->period) + 1;
+    return (int)(delta / self->period);
 }
 
 
 static double get_sine(LFO *self) {
-    double t = get_phase(self);
-    double normalized = NORMALIZE(t, self->period) * 2 * M_PI;
+    double t = get_normalized(self);
 
-    return sin(normalized);
+    return sin(t * 2 * M_PI);
 }
 
 
 static double get_cosine(LFO *self) {
-    double t = get_phase(self);
-    double normalized = NORMALIZE(t, self->period) * 2 * M_PI;
+    double t = get_normalized(self);
 
-    return cos(normalized);
+    return cos(t * 2 * M_PI);
 }
 
 static double get_sawtooth(LFO *self) {
-    double t = get_phase(self);
-    double normalized = NORMALIZE(t, self->period);
+    double t = get_normalized(self);
 
-    return 1.0 - normalized;
+    return 1.0 - t;
 }
 
 static double get_triangle(LFO *self) {
-    double t = get_phase(self);
-    double normalized = NORMALIZE(t, self->period);
+    double t = get_normalized(self);
 
-    if (normalized < 0.5) {
-	return 2 * normalized;
+    if (t < 0.5) {
+	return 2 * t;
     } else {
-	return 1 - 2 * (normalized - 0.5);
+	return 1 - 2 * (t - 0.5);
     }
 
 }
 
 static double get_square(LFO *self) {
-    double t = get_phase(self);
-    double normalized = NORMALIZE(t, self->period);
+    double t = get_normalized(self);
 
-    double pw_offset = self->pw_offset * self.period;
-    double pw = self.pw * self.period;
+    double pw_offset = self->pw_offset * self->period;
+    double pw = self->pw * self->period;
 
-    if (pw_offset < normalized && normalized < pw + pw_offset) {
+    if (pw_offset < t && t < pw + pw_offset) {
 	return 0;
     } else {
 	return 1;
@@ -411,7 +415,6 @@ static double get_square(LFO *self) {
 
 static double get_one(LFO *self) {
     return 1.0;
-    }
 }
 
 static double get_zero(LFO *self) {
@@ -482,6 +485,7 @@ static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) 
 
 static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     static char *kwargslist[] = {
+	"period", "cycles", "frequency",
 	"sine_attenuverter", "sine_offset",
 	"cosine_attenuverter", "cosine_offset",
 	"triangle_attenuverter", "triangle_offset",
@@ -494,6 +498,11 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
 
     timespec_get(&self->t0, TIME_UTC);
     self->period = 1.0;
+
+    self->cycles = 0;
+    self->_cycles_left = 0;
+    self->cycle = 0;
+
     self->frozen = 0;
     self->_frozen_phase = 0.0;
 
@@ -518,6 +527,7 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
 
     if (!PyArg_ParseTupleAndKeywords(
 		args, kwargs, "|d$iddddddddddddddddd", kwargslist,
+		&self->period, &self->cycles, &frequency,
 		&self->sine_attenuverter, &self->sine_offset,
 		&self->cosine_attenuverter, &self->cosine_offset,
 		&self->triangle_attenuverter, &self->triangle_offset,
@@ -553,7 +563,9 @@ static void lfo_dealloc(LFO *self) {
 static PyObject * lfo___repr__(LFO *self) {
     double t = get_phase(self);
     return PyUnicode_FromFormat(
+	    "LFO(%S, cycles=%S) t=%S v=%s",
 	    PyFloat_FromDouble(self->period),
+	    PyFloat_FromDouble(self->cycles),
 	    PyFloat_FromDouble(t),
 	    PyFloat_FromDouble(get_sine(self)));
 }
@@ -583,7 +595,11 @@ static PyObject * lfo___iter__(PyObject *self) {
 }
 
 static PyObject * lfo___next__(LFO *self) {
-    return PyFloat_FromDouble(get_sine(self));
+    if (self->cycles && self->cycles == self->cycle) {
+        return NULL;
+    } else {
+        return PyFloat_FromDouble(get_sine(self));
+    }
 }
 
 static PyObject * lfo_richcompare(PyObject *o1, PyObject *o2, int op) {
@@ -748,6 +764,17 @@ static PyObject * lfo_getter_period(LFO *self, void *closure) {
 
 static int lfo_setter_period(LFO *self, PyObject *val, void *closure) {
     self->period = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
+static PyObject * lfo_getter_cycles(LFO *self, void *closure) {
+    return PyLong_FromLong(self->cycles);
+}
+
+
+static int lfo_setter_cycles(LFO *self, PyObject *val, void *closure) {
+    self->cycles = PyLong_AsLong(val);
 
     return 0;
 }
