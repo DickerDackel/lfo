@@ -190,6 +190,9 @@ to down.  It's pulse width (up) is 0.5.  Setting `lfo.pw = 1/3` instead will
 make the square wave generate a `1` for the first 3rd of the period, and a `0`
 for the remaining time.
 
+**Note**: The value of the pulse width parameters is normalized to 0-1.  That
+way, you won't have to modify it every time you change the period of the LFO.
+
 The `lfo.pw_offset` now shifts the start position of the *pulse*.  By default,
 it starts at the beginning of the period.  But if you would want a narrow
 pulse in the middle of the wave, you can shift the start.
