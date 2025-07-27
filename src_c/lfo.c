@@ -14,9 +14,7 @@
 					   |___/     
 ----------------------------------------------------------------------*/
 
-// #include <docstrings.h>
-
-#define DOCSTRING_LFO "FIXME Lorem ipsum dolor FIXME"
+#include <docstrings.h>
 
 /*----------------------------------------------------------------------
      ____        __ _       _ _   _                 
@@ -202,59 +200,59 @@ static PyNumberMethods lfo_as_number = {
 
 /* Class level methods */
 static PyMethodDef lfo_methods[] = {
-    {"reset", (PyCFunction)lfo_reset, METH_NOARGS, NULL},
-    {"freeze", (PyCFunction)lfo_freeze, METH_NOARGS, NULL},
-    {"unfreeze", (PyCFunction)lfo_unfreeze, METH_NOARGS, NULL},
-    {"is_frozen", (PyCFunction)lfo_is_frozen, METH_NOARGS, NULL},
-    {"set_attenuverters", (PyCFunction)lfo_set_attenuverters, METH_O, NULL},
-    {"set_offsets", (PyCFunction)lfo_set_offsets, METH_O, NULL},
+    {"reset", (PyCFunction)lfo_reset, METH_NOARGS, DOCSTRING_RESET},
+    {"freeze", (PyCFunction)lfo_freeze, METH_NOARGS, DOCSTRING_FREEZE},
+    {"unfreeze", (PyCFunction)lfo_unfreeze, METH_NOARGS, DOCSTRING_UNFREEZE},
+    {"is_frozen", (PyCFunction)lfo_is_frozen, METH_NOARGS, DOCSTRING_ISFROZEN},
+    {"set_attenuverters", (PyCFunction)lfo_set_attenuverters, METH_O, DOCSTRING_SETATTENUVERTERS},
+    {"set_offsets", (PyCFunction)lfo_set_offsets, METH_O, DOCSTRING_SETOFFSETS},
     {NULL},
 };
 
 
 /* Properties */
 static PyGetSetDef lfo_getset[] = {
-    {"period", (getter)lfo_getter_period, (setter)lfo_setter_period, NULL, NULL},
-    {"cycles", (getter)lfo_getter_cycles, (setter)lfo_setter_cycles, NULL, NULL},
-    {"frequency", (getter)lfo_getter_frequency, (setter)lfo_setter_frequency, NULL, NULL},
-    {"frozen", (getter)lfo_getter_frozen, (setter)lfo_setter_frozen, NULL, NULL},
+    {"period", (getter)lfo_getter_period, (setter)lfo_setter_period, DOCSTRING_PERIOD, NULL},
+    {"cycles", (getter)lfo_getter_cycles, (setter)lfo_setter_cycles, DOCSTRING_CYCLES, NULL},
+    {"frequency", (getter)lfo_getter_frequency, (setter)lfo_setter_frequency, DOCSTRING_FREQUENCY, NULL},
+    {"frozen", (getter)lfo_getter_frozen, (setter)lfo_setter_frozen, DOCSTRING_FROZEN, NULL},
 
-    {"t", (getter)lfo_getter_t, NULL, NULL, NULL},
-    {"normalized", (getter)lfo_getter_normalized, NULL, NULL, NULL},
-    {"cycle", (getter)lfo_getter_cycle, NULL, NULL, NULL},
+    {"t", (getter)lfo_getter_t, NULL, DOCSTRING_T, NULL},
+    {"normalized", (getter)lfo_getter_normalized, NULL, DOCSTRING_NORMALIZED, NULL},
+    {"cycle", (getter)lfo_getter_cycle, NULL, DOCSTRING_CYCLE, NULL},
 
-    {"sine", (getter)lfo_getter_sine, NULL, NULL, NULL},
-    {"cosine", (getter)lfo_getter_cosine, NULL, NULL, NULL},
-    {"triangle", (getter)lfo_getter_triangle, NULL, NULL, NULL},
-    {"sawtooth", (getter)lfo_getter_sawtooth, NULL, NULL, NULL},
-    {"square", (getter)lfo_getter_square, NULL, NULL, NULL},
-    {"one", (getter)lfo_getter_one, NULL, NULL, NULL},
-    {"zero", (getter)lfo_getter_zero, NULL, NULL, NULL},
+    {"sine", (getter)lfo_getter_sine, NULL, DOCSTRING_SINE, NULL},
+    {"cosine", (getter)lfo_getter_cosine, NULL, DOCSTRING_COSINE, NULL},
+    {"triangle", (getter)lfo_getter_triangle, NULL, DOCSTRING_TRIANGLE, NULL},
+    {"sawtooth", (getter)lfo_getter_sawtooth, NULL, DOCSTRING_SAWTOOTH, NULL},
+    {"square", (getter)lfo_getter_square, NULL, DOCSTRING_SQUARE, NULL},
+    {"one", (getter)lfo_getter_one, NULL, DOCSTRING_ONE, NULL},
+    {"zero", (getter)lfo_getter_zero, NULL, DOCSTRING_ZERO, NULL},
 
-    {"inv_sine", (getter)lfo_getter_inv_sine, NULL, NULL, NULL},
-    {"inv_cosine", (getter)lfo_getter_inv_cosine, NULL, NULL, NULL},
-    {"inv_triangle", (getter)lfo_getter_inv_triangle, NULL, NULL, NULL},
-    {"inv_sawtooth", (getter)lfo_getter_inv_sawtooth, NULL, NULL, NULL},
-    {"inv_square", (getter)lfo_getter_inv_square, NULL, NULL, NULL},
-    {"inv_one", (getter)lfo_getter_inv_one, NULL, NULL, NULL},
-    {"inv_zero", (getter)lfo_getter_inv_zero, NULL, NULL, NULL},
+    {"inv_sine", (getter)lfo_getter_inv_sine, NULL, DOCSTRING_INV_SINE, NULL},
+    {"inv_cosine", (getter)lfo_getter_inv_cosine, NULL, DOCSTRING_INV_COSINE, NULL},
+    {"inv_triangle", (getter)lfo_getter_inv_triangle, NULL, DOCSTRING_INV_TRIANGLE, NULL},
+    {"inv_sawtooth", (getter)lfo_getter_inv_sawtooth, NULL, DOCSTRING_INV_SAWTOOTH, NULL},
+    {"inv_square", (getter)lfo_getter_inv_square, NULL, DOCSTRING_INV_SQUARE, NULL},
+    {"inv_one", (getter)lfo_getter_inv_one, NULL, DOCSTRING_INV_ONE, NULL},
+    {"inv_zero", (getter)lfo_getter_inv_zero, NULL, DOCSTRING_INV_ZERO, NULL},
 
-    {"sine_attenuverter", (getter)lfo_getter_sine_attenuverter, (setter)lfo_setter_sine_attenuverter, NULL, NULL},
-    {"cosine_attenuverter", (getter)lfo_getter_cosine_attenuverter, (setter)lfo_setter_cosine_attenuverter, NULL, NULL},
-    {"triangle_attenuverter", (getter)lfo_getter_triangle_attenuverter, (setter)lfo_setter_triangle_attenuverter, NULL, NULL},
-    {"sawtooth_attenuverter", (getter)lfo_getter_sawtooth_attenuverter, (setter)lfo_setter_sawtooth_attenuverter, NULL, NULL},
-    {"square_attenuverter", (getter)lfo_getter_square_attenuverter, (setter)lfo_setter_square_attenuverter, NULL, NULL},
-    {"one_attenuverter", (getter)lfo_getter_one_attenuverter, (setter)lfo_setter_one_attenuverter, NULL, NULL},
-    {"zero_attenuverter", (getter)lfo_getter_zero_attenuverter, (setter)lfo_setter_zero_attenuverter, NULL, NULL},
-    {"sine_offset", (getter)lfo_getter_sine_offset, (setter)lfo_setter_sine_offset, NULL, NULL},
-    {"cosine_offset", (getter)lfo_getter_cosine_offset, (setter)lfo_setter_cosine_offset, NULL, NULL},
-    {"triangle_offset", (getter)lfo_getter_triangle_offset, (setter)lfo_setter_triangle_offset, NULL, NULL},
-    {"sawtooth_offset", (getter)lfo_getter_sawtooth_offset, (setter)lfo_setter_sawtooth_offset, NULL, NULL},
-    {"square_offset", (getter)lfo_getter_square_offset, (setter)lfo_setter_square_offset, NULL, NULL},
-    {"one_offset", (getter)lfo_getter_one_offset, (setter)lfo_setter_one_offset, NULL, NULL},
-    {"zero_offset", (getter)lfo_getter_zero_offset, (setter)lfo_setter_zero_offset, NULL, NULL},
-    {"pw", (getter)lfo_getter_pw, (setter)lfo_setter_pw, NULL, NULL},
-    {"pw_offset", (getter)lfo_getter_pw_offset, (setter)lfo_setter_pw_offset, NULL, NULL},
+    {"sine_attenuverter", (getter)lfo_getter_sine_attenuverter, (setter)lfo_setter_sine_attenuverter, DOCSTRING_SINE_ATTENUVERTER, NULL},
+    {"cosine_attenuverter", (getter)lfo_getter_cosine_attenuverter, (setter)lfo_setter_cosine_attenuverter, DOCSTRING_COSINE_ATTENUVERTER, NULL},
+    {"triangle_attenuverter", (getter)lfo_getter_triangle_attenuverter, (setter)lfo_setter_triangle_attenuverter, DOCSTRING_TRIANGLE_ATTENUVERTER, NULL},
+    {"sawtooth_attenuverter", (getter)lfo_getter_sawtooth_attenuverter, (setter)lfo_setter_sawtooth_attenuverter, DOCSTRING_SAWTOOTH_ATTENUVERTER, NULL},
+    {"square_attenuverter", (getter)lfo_getter_square_attenuverter, (setter)lfo_setter_square_attenuverter, DOCSTRING_SQUARE_ATTENUVERTER, NULL},
+    {"one_attenuverter", (getter)lfo_getter_one_attenuverter, (setter)lfo_setter_one_attenuverter, DOCSTRING_ONE_ATTENUVERTER, NULL},
+    {"zero_attenuverter", (getter)lfo_getter_zero_attenuverter, (setter)lfo_setter_zero_attenuverter, DOCSTRING_ZERO_ATTENUVERTER, NULL},
+    {"sine_offset", (getter)lfo_getter_sine_offset, (setter)lfo_setter_sine_offset, DOCSTRING_SINE_OFFSET, NULL},
+    {"cosine_offset", (getter)lfo_getter_cosine_offset, (setter)lfo_setter_cosine_offset, DOCSTRING_COSINE_OFFSET, NULL},
+    {"triangle_offset", (getter)lfo_getter_triangle_offset, (setter)lfo_setter_triangle_offset, DOCSTRING_TRIANGLE_OFFSET, NULL},
+    {"sawtooth_offset", (getter)lfo_getter_sawtooth_offset, (setter)lfo_setter_sawtooth_offset, DOCSTRING_SAWTOOTH_OFFSET, NULL},
+    {"square_offset", (getter)lfo_getter_square_offset, (setter)lfo_setter_square_offset, DOCSTRING_SQUARE_OFFSET, NULL},
+    {"one_offset", (getter)lfo_getter_one_offset, (setter)lfo_setter_one_offset, DOCSTRING_ONE_OFFSET, NULL},
+    {"zero_offset", (getter)lfo_getter_zero_offset, (setter)lfo_setter_zero_offset, DOCSTRING_ZERO_OFFSET, NULL},
+    {"pw", (getter)lfo_getter_pw, (setter)lfo_setter_pw, DOCSTRING_PW, NULL},
+    {"pw_offset", (getter)lfo_getter_pw_offset, (setter)lfo_setter_pw_offset, DOCSTRING_PW_OFFSET, NULL},
 
     {NULL},
 };
@@ -263,7 +261,7 @@ static PyGetSetDef lfo_getset[] = {
 static PyTypeObject lfo_type = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "_pglfo.LFO",
-    .tp_doc = PyDoc_STR(DOCSTRING_LFO),
+    .tp_doc = DOCSTRING_LFO,
     .tp_basicsize = sizeof(LFO),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
@@ -285,7 +283,7 @@ static PyTypeObject lfo_type = {
 static PyModuleDef lfo_module = {
     .m_base = PyModuleDef_HEAD_INIT,
     .m_name = "_lfo",
-    .m_doc = "The _lfo module that contains the LFO class",
+    .m_doc = DOCSTRING_MODULE,
     .m_size = -1,
 };
 

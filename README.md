@@ -44,18 +44,22 @@ now, but I'm open to suggestions to extend this list:
 * A wave that always outputs 0
 * The inverse of all these
 
-The lfo registers the start time of its instantiation.  Its constructor
-receives a period, the duration of one single wave until the wave repeats.
+The lfo registers the start time of its instantiation.  If no period length -
+the duration of one single wave - is provided, it defaults to 1 second.
 
-When ever you now query a value from the lfo, it gives you the proper
+Whenever you now query a value from the lfo, it gives you the proper
 function result of that wave for this specific point in time.  Also, you can
 query all of the wave forms from the same lfo.
 
+Each waveform can be scaled and offset.  Note, that the inverted waves use the
+same scale and offset as the normal ones, otherwise they would run out of
+sync.
+
 There's one important difference to the lfo you might know from your DAW or
 synth.  Since most programmers will use these to ramp other values by
-multiplication, this lfo is not centered around the 0 point of the y axis,
-but all waves are positioned so that they return a value between 0 and 1.
-There are per-wave parameters to change this.
+multiplication, this lfo is not centered around the 0 point of the y axis, but
+all waves except sine and cosine variants are positioned so that they return a
+value between 0 and 1. There are per-wave parameters to change this.
 
 
 ## Terminology / Parameter Names

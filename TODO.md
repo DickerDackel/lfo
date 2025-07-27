@@ -1,7 +1,6 @@
 # Open issues in LFO
 
- ____                 _ 
-|  _ \  ___   ___ ___| |
-| | | |/ _ \ / __/ __| |
-| |_| | (_) | (__\__ \_|
-|____/ \___/ \___|___(_)
+* Make default wave configurable (call, int, float, ...) instead of alwasy
+  returning sine...
+
+* random wave

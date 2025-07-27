@@ -1,1 +1,1 @@
-from lfo._lfo import LFO  # noqa: F401
+from lfo._lfo import LFO, __doc__  # noqa: F401
