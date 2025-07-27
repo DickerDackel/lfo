@@ -307,6 +307,23 @@ continuous.  It will **not** jump once it's reactivated.
 If you prefer a function interface over the status attribute `lfo.frozen`
 above, use `lfo.is_frozen()`, which returns a bool.
 
+#### `lfo.set_attenuverters(amount: double) -> None`
+
+Set all attenuverters to the given amount.
+
+#### `lfo.set_offsets(amount: double) -> None`
+
+Set all offsets to the given amount.
+
+#### `lfo.rewind(amount: double) -> None`
+
+Rewind the lfo by the given amount in seconds.
+
+#### `lfo.skip(amount: double) -> None`
+
+Skip the lfo by the given amount in seconds.
+
+
 ### Python Magic Methods
 
 LFO instances properly convert to `bool`, `int` and `float` and can thus be

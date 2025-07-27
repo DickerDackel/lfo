@@ -143,6 +143,8 @@ static PyObject * lfo_is_frozen(LFO *self);
 static PyObject * lfo_set_attenuverters(LFO *self, PyObject *o);
 static PyObject * lfo_set_offsets(LFO *self, PyObject *o);
 static PyObject * lfo_set_default_wave(LFO *self, PyObject *o);
+static PyObject * lfo_rewind(LFO *self, PyObject *o);
+static PyObject * lfo_skip(LFO *self, PyObject *o);
 
 /* Class attributes */
 static PyObject * lfo_getter_period(LFO *self, void *closure);
@@ -244,6 +246,8 @@ static PyMethodDef lfo_methods[] = {
     {"set_attenuverters", (PyCFunction)lfo_set_attenuverters, METH_O, DOCSTRING_SETATTENUVERTERS},
     {"set_offsets", (PyCFunction)lfo_set_offsets, METH_O, DOCSTRING_SETOFFSETS},
     {"set_default_wave", (PyCFunction)lfo_set_default_wave, METH_O, DOCSTRING_SETOFFSETS},
+    {"rewind", (PyCFunction)lfo_rewind, METH_O, DOCSTRING_REWIND},
+    {"skip", (PyCFunction)lfo_skip, METH_O, DOCSTRING_SKIP},
     {NULL},
 };
 
@@ -784,6 +788,36 @@ static PyObject * lfo_set_default_wave(LFO *self, PyObject *o) {
     }
 
     self->_default_wave = wave_functions[index];
+
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * lfo_rewind(LFO *self, PyObject *o) {
+    double amount = PyFloat_AsDouble(o) * self->period;
+    if (PyErr_Occurred()) {
+	PyErr_SetString(PyExc_TypeError, "`rewind` expects a number");
+	return NULL;
+    }
+
+    double t0 = timespec_to_double(&self->t0);
+    double new = t0 + amount;
+    double_to_timespec(&self->t0, new);
+
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * lfo_skip(LFO *self, PyObject *o) {
+    double amount = PyFloat_AsDouble(o) * self->period;
+    if (PyErr_Occurred()) {
+	PyErr_SetString(PyExc_TypeError, "`skip` expects a number");
+	return NULL;
+    }
+
+    double t0 = timespec_to_double(&self->t0);
+    double new = t0 - amount;
+    double_to_timespec(&self->t0, new);
 
     Py_RETURN_NONE;
 }

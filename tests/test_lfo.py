@@ -1,4 +1,4 @@
-from pytest import approx, fixture
+from pytest import approx, fixture, raises
 from time import sleep
 
 from lfo import LFO, Wave
@@ -344,3 +344,20 @@ def test_conversions(lfo1):
     assert float(lfo1) > 1.0
     assert int(lfo1) == 1
     assert bool(lfo1)
+
+def test_rewind_skip(lfo1):
+    lfo1.reset()
+    sleep(0.5)
+
+    lfo1.rewind(0.1)
+    assert approx(lfo1.t, abs=0.025) == 0.4
+
+    lfo1.skip(0.2)
+    assert approx(lfo1.t, abs=0.025) == 0.6
+
+    with raises(TypeError):
+        lfo1.rewind('xyzzy')
+    with raises(TypeError):
+        lfo1.skip('xyzzy')
+
+

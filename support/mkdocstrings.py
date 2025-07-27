@@ -162,7 +162,7 @@ Additional methods and features:
 """,
 
     'FREEZE':
-"""Freezes the LFO
+"""Freeze the LFO
 
 A frozen LFO returns the value at the time it was frozen.
 
@@ -171,7 +171,7 @@ wave will not jump.
 """,
 
     'UNFREEZE':
-"""Unfreezes a frozen the LFO
+"""Unfreeze a frozen the LFO
 
 See "freeze".
 
@@ -189,6 +189,34 @@ Unfreezing an already running LFO does nothing.
 
     'SETOFFSETS':
 """Set all offsets to `value`""",
+
+    'SETDEFAULTWAVE':
+"""Set the default wave for lfo(), float(lfo), int(lfo) and bool(lfo)
+
+    `lfo.set_default_wave(n)`
+
+Use the `Wave` Enum instead of plain numbers.  The fields match the
+wavefunctions.  E.g.
+
+    lfo.set_default_wave(Wave.inv_triangle)
+
+""",
+
+    'REWIND':
+"""Rewind the lfo by the by the given fraction in the range of 0-1.
+
+The actual rewind time will be `passed_time * lfo.period`.  This way, the
+rewind amount doens't need to be corrected when the period is changed.
+
+""",
+
+    'SKIP':
+"""Skip the lfo by the by the given fraction in the range of 0-1.
+
+The actual skip time will be `passed_time * lfo.period`.  This way, the skip
+amount doens't need to be corrected when the period is changed.
+
+""",
 
     'PERIOD':
 """The duration of one full wave. (rw)""",
