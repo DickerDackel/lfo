@@ -1,7 +1,7 @@
 from pytest import approx, fixture
 from time import sleep
 
-from lfo import LFO
+from lfo import LFO, Wave
 
 
 @fixture
@@ -311,3 +311,36 @@ def test_cycles(lfo1):
     assert approx(inv_one, abs=0.025) == 0.0
     assert approx(zero, abs=0.025) == 0.0
     assert approx(inv_zero, abs=0.025) == 1.0
+
+def test_set_default_wave(lfo1):
+    lfo1.set_default_wave(Wave.triangle)
+    sleep(0.5)
+    assert approx(lfo1(), abs=0.025) == 1.0
+
+    lfo1.set_default_wave(Wave.inv_sawtooth)
+    lfo1.reset()
+    sleep(0.5)
+    assert approx(lfo1(), abs=0.025) == 0.5
+
+
+def test_richcompare(lfo1):
+    lfo1.set_default_wave(Wave.inv_sawtooth)
+
+    assert lfo1 < 0.1
+    sleep(0.5)
+    assert lfo1 > 0.5
+    assert lfo1 < lfo1
+    assert not (lfo1 > lfo1)
+
+def test_conversions(lfo1):
+    lfo1.set_default_wave(Wave.inv_sawtooth)
+    lfo1.sawtooth_attenuverter = 2.0
+
+    assert approx(float(lfo1), abs=0.025) == 0
+    assert int(lfo1) == 0
+    assert not bool(lfo1)
+
+    sleep(0.5)
+    assert float(lfo1) > 1.0
+    assert int(lfo1) == 1
+    assert bool(lfo1)

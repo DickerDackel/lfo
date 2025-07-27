@@ -32,6 +32,10 @@
 # define M_PI 3.1415926535897932384626433832795028841971693993751058209749445923078
 #endif
 
+typedef struct LFO LFO;
+typedef double (*GetWavePtr)(LFO *self);
+
+
 typedef struct LFO {
     PyObject_HEAD
 
@@ -60,6 +64,8 @@ typedef struct LFO {
     double zero_offset;
     double random_attenuverter;
     double random_offset;
+
+    GetWavePtr _default_wave;
 } LFO;
 
 /* Utilities */
@@ -92,6 +98,27 @@ static double get_inv_one(LFO *self);
 static double get_inv_zero(LFO *self);
 static double get_inv_random(LFO *self);
 
+GetWavePtr wave_functions[] = {
+    &get_sine,
+    &get_cosine,
+    &get_triangle,
+    &get_sawtooth,
+    &get_square,
+    &get_one,
+    &get_zero,
+    &get_random,
+    &get_inv_sine,
+    &get_inv_cosine,
+    &get_inv_triangle,
+    &get_inv_sawtooth,
+    &get_inv_square,
+    &get_inv_one,
+    &get_inv_zero,
+    &get_inv_random,
+};
+
+static int no_of_wave_functions = sizeof(wave_functions) / sizeof(wave_functions[0]);
+
 /* Module level functions */
 static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
@@ -108,13 +135,14 @@ static PyObject * lfo___int__(LFO *self);
 static PyObject * lfo___float__(LFO *self);
 static PyObject * lfo___iter__(PyObject *o);
 static PyObject * lfo___next__(LFO *self);
-static PyObject * lfo_richcompare(PyObject *o1, PyObject *o2, int op);
+static PyObject * lfo_richcompare(PyObject *self, PyObject *other, int op);
 static PyObject * lfo_reset(LFO *self, PyObject *args, PyObject *kwargs);
 static PyObject * lfo_freeze(LFO *self);
 static PyObject * lfo_unfreeze(LFO *self);
 static PyObject * lfo_is_frozen(LFO *self);
 static PyObject * lfo_set_attenuverters(LFO *self, PyObject *o);
 static PyObject * lfo_set_offsets(LFO *self, PyObject *o);
+static PyObject * lfo_set_default_wave(LFO *self, PyObject *o);
 
 /* Class attributes */
 static PyObject * lfo_getter_period(LFO *self, void *closure);
@@ -215,6 +243,7 @@ static PyMethodDef lfo_methods[] = {
     {"is_frozen", (PyCFunction)lfo_is_frozen, METH_NOARGS, DOCSTRING_ISFROZEN},
     {"set_attenuverters", (PyCFunction)lfo_set_attenuverters, METH_O, DOCSTRING_SETATTENUVERTERS},
     {"set_offsets", (PyCFunction)lfo_set_offsets, METH_O, DOCSTRING_SETOFFSETS},
+    {"set_default_wave", (PyCFunction)lfo_set_default_wave, METH_O, DOCSTRING_SETOFFSETS},
     {NULL},
 };
 
@@ -389,85 +418,115 @@ static int get_cycle(LFO *self) {
 static double get_sine(LFO *self) {
     double t = get_normalized(self);
 
-    return sin(t * 2 * M_PI);
+    double res = sin(t * 2 * M_PI);
+    return res * self->sine_attenuverter + self->sine_offset;
 }
 
 
 static double get_cosine(LFO *self) {
     double t = get_normalized(self);
 
-    return cos(t * 2 * M_PI);
-}
-
-static double get_sawtooth(LFO *self) {
-    double t = get_normalized(self);
-
-    return 1.0 - t;
+    double res = cos(t * 2 * M_PI);
+    return res * self->cosine_attenuverter + self->cosine_offset;
 }
 
 static double get_triangle(LFO *self) {
     double t = get_normalized(self);
 
-    if (t < 0.5) {
-	return 2 * t;
-    } else {
-	return 1 - 2 * (t - 0.5);
-    }
+    double res = (t < 0.5) ? (2 * t) : (1 - 2 * (t - 0.5));
+    return res * self->triangle_attenuverter + self->triangle_offset;
 
+}
+
+static double get_sawtooth(LFO *self) {
+    double t = get_normalized(self);
+
+    double res = (1.0 - t);
+    return res * self->sawtooth_attenuverter + self->sawtooth_offset;
 }
 
 static double get_square(LFO *self) {
     double t = get_normalized(self);
 
+    double res;
     if (t >= self->pw_offset && t <= self->pw + self->pw_offset) {
-        return 1;
+        res = 1;
     } else {
-        return 0;
+        res = 0;
     }
+    return res * self->square_attenuverter + self->square_offset;
 }
 
 static double get_one(LFO *self) {
-    return 1.0;
+    return 1.0 * self->one_attenuverter + self->one_offset;
 }
 
 static double get_zero(LFO *self) {
-    return 0.0;
+    return 0.0 * self->zero_attenuverter + self->zero_offset;;
 }
 
 static double get_random(LFO *self) {
-    return (double)rand() / (double)RAND_MAX;
+    double res = (double)rand() / (double)RAND_MAX;
+    return res * self->random_attenuverter + self->random_offset;
 }
 
+/*
+ * NOTE:
+ * Yes, some of the inv_<waveform> can be shortened, but I want the symmetry
+ * to its pair not inverted twins.
+ */
 static double get_inv_sine(LFO *self) {
-    return -get_sine(self);
+    double t = get_normalized(self);
+
+    double res = -sin(t * 2 * M_PI);
+    return res * self->sine_attenuverter + self->sine_offset;
 }
 
 static double get_inv_cosine(LFO *self) {
-    return -get_cosine(self);
+    double t = get_normalized(self);
+
+    double res = -cos(t * 2 * M_PI);
+    return res * self->cosine_attenuverter + self->cosine_offset;
 }
 
 static double get_inv_triangle(LFO *self) {
-    return 1 - get_triangle(self);
+    double t = get_normalized(self);
+
+    double res = (t < 0.5) ? 1 - (2 * t) : 1 - (1 - 2 * (t - 0.5));
+    return res * self->triangle_attenuverter + self->triangle_offset;
 }
 
 static double get_inv_sawtooth(LFO *self) {
-    return 1 - get_sawtooth(self);
+    double t = get_normalized(self);
+
+    double res = 1 - (1.0 - t);
+    return res * self->sawtooth_attenuverter + self->sawtooth_offset;
 }
 
 static double get_inv_square(LFO *self) {
-    return 1 - get_square(self);
+    double t = get_normalized(self);
+
+    double res;
+    if (t >= self->pw_offset && t <= self->pw + self->pw_offset) {
+        res = 0;
+    } else {
+        res = 1;
+    }
+    return res * self->square_attenuverter + self->square_offset;
 }
 
 static double get_inv_one(LFO *self) {
-    return 1 - get_one(self);
+    return 0.0 * self->one_attenuverter + self->one_offset;
 }
 
 static double get_inv_zero(LFO *self) {
-    return 1 - get_zero(self);
+    return 1.0 * self->zero_attenuverter + self->zero_offset;;
 }
 
+// This makes zero sense, but it should be symmetrical
 static double get_inv_random(LFO *self) {
-    return 1 - get_random(self);
+    double res = 1 - (double)rand() / (double)RAND_MAX;
+    return res * self->random_attenuverter + self->random_offset;
 }
 
 
@@ -545,6 +604,7 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     self->random_attenuverter = 1.0;
     self->random_offset = 0.0;
 
+    self->_default_wave = &get_sine;
     double frequency = 0.0;
 
     if (!PyArg_ParseTupleAndKeywords(
@@ -595,21 +655,21 @@ static PyObject * lfo___repr__(LFO *self) {
 
 
 static PyObject * lfo___call__(LFO *self) {
-    return PyFloat_FromDouble(get_sine(self));
+    return PyFloat_FromDouble(self->_default_wave(self));
 }
 
 
 static int lfo___bool__(LFO *self) {
-    return get_sine(self) > 0.5;
+    return self->_default_wave(self) > 0.5;
 }
 
 
 static PyObject * lfo___int__(LFO *self) {
-    return PyLong_FromDouble(get_sine(self) > 0.5 ? 1.0 : 0.0);
+    return PyLong_FromDouble(self->_default_wave(self) > 0.5 ? 1.0 : 0.0);
 }
 
 static PyObject * lfo___float__(LFO *self) {
-    return PyFloat_FromDouble(get_sine(self));
+    return PyFloat_FromDouble(self->_default_wave(self));
 }
 
 static PyObject * lfo___iter__(PyObject *self) {
@@ -619,48 +679,24 @@ static PyObject * lfo___iter__(PyObject *self) {
 
 static PyObject * lfo___next__(LFO *self) {
     if ((self->cycles == 0) || (self->cycles && get_cycle(self) < self->cycles)) {
-        return PyFloat_FromDouble(get_sine(self));
+        return PyFloat_FromDouble(self->_default_wave(self));
     } else {
         return NULL;
     }
 }
 
-static PyObject * lfo_richcompare(PyObject *o1, PyObject *o2, int op) {
-    double this;
-    double other;
+static PyObject * lfo_richcompare(PyObject *self, PyObject *o, int op) {
+    double this = ((LFO *)self)->_default_wave((LFO *)self);
 
-    if (is_lfo(o1)) {
-	this = get_sine((LFO *)o1);
-	other = PyFloat_AsDouble(PyNumber_Float(o2));
-    } else {
-	this = PyFloat_AsDouble(PyNumber_Float(o1));
-	other = get_sine((LFO *)o2);
+    PyObject *conv;
+    if ((conv = PyNumber_Float(o)) == NULL) {
+	return Py_NotImplemented;
     }
 
-    switch(op) {
-	case Py_LT:
-	    return PyBool_FromLong(this < other);
-	    break;
-	case Py_LE:
-	    return PyBool_FromLong(this <= other);
-	    break;
-	case Py_EQ:
-	    return PyBool_FromLong(this == other);
-	    break;
-	case Py_NE:
-	    return PyBool_FromLong(this != other);
-	    break;
-	case Py_GT:
-	    return PyBool_FromLong(this > other);
-	    break;
-	case Py_GE:
-	    return PyBool_FromLong(this >= other);
-	    break;
-	default:
-	    PyErr_SetString(PyExc_ValueError, "Can't convert object to number");
-	    return NULL;
-    }
+    double other = PyFloat_AsDouble(conv);
+    Py_DECREF(conv);
 
+    Py_RETURN_RICHCOMPARE(this, other, op);
 }
 
 
@@ -734,6 +770,26 @@ static PyObject * lfo_set_offsets(LFO *self, PyObject *o) {
 }
 
 
+static PyObject * lfo_set_default_wave(LFO *self, PyObject *o) {
+    PyObject *conv;
+    if (!PyNumber_Check(o) || (conv = PyNumber_Long(o)) == NULL) {
+	PyErr_SetString(PyExc_TypeError, "lfo_set_default_wave expects a number");
+	return NULL;
+    }
+
+    long index = PyLong_AsLong(conv);
+    if (index < 0 || index >= no_of_wave_functions) {
+	return PyErr_Format(PyExc_ValueError,
+		            "wave function number must be between 0 and %d",
+		            no_of_wave_functions);
+    }
+
+    self->_default_wave = wave_functions[index];
+
+    Py_RETURN_NONE;
+}
+
+
 /*----------------------------------------------------------------------
 	   _   _        _ _           _            
       __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___ 
@@ -744,82 +800,82 @@ static PyObject * lfo_set_offsets(LFO *self, PyObject *o) {
 ----------------------------------------------------------------------*/
 
 static PyObject * lfo_getter_sine(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_sine(self) * self->sine_attenuverter + self->sine_offset);
+    return PyFloat_FromDouble(get_sine(self));
 }
 
 
 static PyObject * lfo_getter_cosine(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_cosine(self) * self->cosine_attenuverter + self->cosine_offset);
+    return PyFloat_FromDouble(get_cosine(self));
 }
 
 
 static PyObject * lfo_getter_triangle(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_triangle(self) * self->triangle_attenuverter + self->triangle_offset);
+    return PyFloat_FromDouble(get_triangle(self));
 }
 
 
 static PyObject * lfo_getter_sawtooth(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_sawtooth(self) * self->sawtooth_attenuverter + self->sawtooth_offset);
+    return PyFloat_FromDouble(get_sawtooth(self));
 }
 
 
 static PyObject * lfo_getter_square(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_square(self) * self->square_attenuverter + self->square_offset);
+    return PyFloat_FromDouble(get_square(self));
 }
 
 
 static PyObject * lfo_getter_one(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_one(self) * self->one_attenuverter + self->one_offset);
+    return PyFloat_FromDouble(get_one(self));
 }
 
 
 static PyObject * lfo_getter_zero(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_zero(self) * self->zero_attenuverter + self->zero_offset);
+    return PyFloat_FromDouble(get_zero(self));
 }
 
 
 static PyObject * lfo_getter_random(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_random(self) * self->random_attenuverter + self->random_offset);
+    return PyFloat_FromDouble(get_random(self));
 }
 
 
 static PyObject * lfo_getter_inv_sine(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_sine(self) * self->sine_attenuverter + self->sine_offset);
+    return PyFloat_FromDouble(get_inv_sine(self));
 }
 
 
 static PyObject * lfo_getter_inv_cosine(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_cosine(self) * self->cosine_attenuverter + self->cosine_offset);
+    return PyFloat_FromDouble(get_inv_cosine(self));
 }
 
 
 static PyObject * lfo_getter_inv_triangle(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_triangle(self) * self->triangle_attenuverter + self->triangle_offset);
+    return PyFloat_FromDouble(get_inv_triangle(self));
 }
 
 
 static PyObject * lfo_getter_inv_sawtooth(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_sawtooth(self) * self->sawtooth_attenuverter + self->sawtooth_offset);
+    return PyFloat_FromDouble(get_inv_sawtooth(self));
 }
 
 
 static PyObject * lfo_getter_inv_square(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_square(self) * self->square_attenuverter + self->square_offset);
+    return PyFloat_FromDouble(get_inv_square(self));
 }
 
 
 static PyObject * lfo_getter_inv_one(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_one(self) * self->one_attenuverter + self->one_offset);
+    return PyFloat_FromDouble(get_inv_one(self));
 }
 
 
 static PyObject * lfo_getter_inv_zero(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_zero(self) * self->zero_attenuverter + self->zero_offset);
+    return PyFloat_FromDouble(get_inv_zero(self));
 }
 
 
 static PyObject * lfo_getter_inv_random(LFO *self, void *closure) {
-    return PyFloat_FromDouble(get_inv_random(self) * self->random_attenuverter + self->random_offset);
+    return PyFloat_FromDouble(get_inv_random(self));
 }
 
 static PyObject * lfo_getter_period(LFO *self, void *closure) {
