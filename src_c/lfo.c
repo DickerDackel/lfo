@@ -41,7 +41,6 @@ typedef struct LFO {
     double _frozen_phase;
     int cycle;
     int cycles;
-    int _cycles_left;
 
     double sine_attenuverter;
     double sine_offset;
@@ -59,6 +58,8 @@ typedef struct LFO {
     double one_offset;
     double zero_attenuverter;
     double zero_offset;
+    double random_attenuverter;
+    double random_offset;
 } LFO;
 
 /* Utilities */
@@ -80,6 +81,7 @@ static double get_sawtooth(LFO *self);
 static double get_square(LFO *self);
 static double get_one(LFO *self);
 static double get_zero(LFO *self);
+static double get_random(LFO *self);
 
 static double get_inv_sine(LFO *self);
 static double get_inv_cosine(LFO *self);
@@ -88,6 +90,7 @@ static double get_inv_sawtooth(LFO *self);
 static double get_inv_square(LFO *self);
 static double get_inv_one(LFO *self);
 static double get_inv_zero(LFO *self);
+static double get_inv_random(LFO *self);
 
 /* Module level functions */
 static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
@@ -139,6 +142,8 @@ static PyObject * lfo_getter_one_attenuverter(LFO *self, void *closure);
 static int lfo_setter_one_attenuverter(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_zero_attenuverter(LFO *self, void *closure);
 static int lfo_setter_zero_attenuverter(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_random_attenuverter(LFO *self, void *closure);
+static int lfo_setter_random_attenuverter(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_sine_offset(LFO *self, void *closure);
 static int lfo_setter_sine_offset(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_cosine_offset(LFO *self, void *closure);
@@ -153,6 +158,8 @@ static PyObject * lfo_getter_one_offset(LFO *self, void *closure);
 static int lfo_setter_one_offset(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_zero_offset(LFO *self, void *closure);
 static int lfo_setter_zero_offset(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_random_offset(LFO *self, void *closure);
+static int lfo_setter_random_offset(LFO *self, PyObject *val, void *closure);
 
 static PyObject * lfo_getter_pw(LFO *self, void *closure);
 static int lfo_setter_pw(LFO *self, PyObject *val, void *closure);
@@ -166,6 +173,7 @@ static PyObject * lfo_getter_sawtooth(LFO *self, void *closure);
 static PyObject * lfo_getter_square(LFO *self, void *closure);
 static PyObject * lfo_getter_one(LFO *self, void *closure);
 static PyObject * lfo_getter_zero(LFO *self, void *closure);
+static PyObject * lfo_getter_random(LFO *self, void *closure);
 
 static PyObject * lfo_getter_inv_sine(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_cosine(LFO *self, void *closure);
@@ -174,6 +182,7 @@ static PyObject * lfo_getter_inv_sawtooth(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_square(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_one(LFO *self, void *closure);
 static PyObject * lfo_getter_inv_zero(LFO *self, void *closure);
+static PyObject * lfo_getter_inv_random(LFO *self, void *closure);
 
 /* Module init */
 PyMODINIT_FUNC PyInit__lfo(void);
@@ -228,6 +237,7 @@ static PyGetSetDef lfo_getset[] = {
     {"square", (getter)lfo_getter_square, NULL, DOCSTRING_SQUARE, NULL},
     {"one", (getter)lfo_getter_one, NULL, DOCSTRING_ONE, NULL},
     {"zero", (getter)lfo_getter_zero, NULL, DOCSTRING_ZERO, NULL},
+    {"random", (getter)lfo_getter_random, NULL, DOCSTRING_RANDOM, NULL},
 
     {"inv_sine", (getter)lfo_getter_inv_sine, NULL, DOCSTRING_INV_SINE, NULL},
     {"inv_cosine", (getter)lfo_getter_inv_cosine, NULL, DOCSTRING_INV_COSINE, NULL},
@@ -236,6 +246,7 @@ static PyGetSetDef lfo_getset[] = {
     {"inv_square", (getter)lfo_getter_inv_square, NULL, DOCSTRING_INV_SQUARE, NULL},
     {"inv_one", (getter)lfo_getter_inv_one, NULL, DOCSTRING_INV_ONE, NULL},
     {"inv_zero", (getter)lfo_getter_inv_zero, NULL, DOCSTRING_INV_ZERO, NULL},
+    {"inv_random", (getter)lfo_getter_inv_random, NULL, DOCSTRING_INV_RANDOM, NULL},
 
     {"sine_attenuverter", (getter)lfo_getter_sine_attenuverter, (setter)lfo_setter_sine_attenuverter, DOCSTRING_SINE_ATTENUVERTER, NULL},
     {"cosine_attenuverter", (getter)lfo_getter_cosine_attenuverter, (setter)lfo_setter_cosine_attenuverter, DOCSTRING_COSINE_ATTENUVERTER, NULL},
@@ -244,6 +255,7 @@ static PyGetSetDef lfo_getset[] = {
     {"square_attenuverter", (getter)lfo_getter_square_attenuverter, (setter)lfo_setter_square_attenuverter, DOCSTRING_SQUARE_ATTENUVERTER, NULL},
     {"one_attenuverter", (getter)lfo_getter_one_attenuverter, (setter)lfo_setter_one_attenuverter, DOCSTRING_ONE_ATTENUVERTER, NULL},
     {"zero_attenuverter", (getter)lfo_getter_zero_attenuverter, (setter)lfo_setter_zero_attenuverter, DOCSTRING_ZERO_ATTENUVERTER, NULL},
+    {"random_attenuverter", (getter)lfo_getter_random_attenuverter, (setter)lfo_setter_random_attenuverter, DOCSTRING_RANDOM_ATTENUVERTER, NULL},
     {"sine_offset", (getter)lfo_getter_sine_offset, (setter)lfo_setter_sine_offset, DOCSTRING_SINE_OFFSET, NULL},
     {"cosine_offset", (getter)lfo_getter_cosine_offset, (setter)lfo_setter_cosine_offset, DOCSTRING_COSINE_OFFSET, NULL},
     {"triangle_offset", (getter)lfo_getter_triangle_offset, (setter)lfo_setter_triangle_offset, DOCSTRING_TRIANGLE_OFFSET, NULL},
@@ -251,6 +263,7 @@ static PyGetSetDef lfo_getset[] = {
     {"square_offset", (getter)lfo_getter_square_offset, (setter)lfo_setter_square_offset, DOCSTRING_SQUARE_OFFSET, NULL},
     {"one_offset", (getter)lfo_getter_one_offset, (setter)lfo_setter_one_offset, DOCSTRING_ONE_OFFSET, NULL},
     {"zero_offset", (getter)lfo_getter_zero_offset, (setter)lfo_setter_zero_offset, DOCSTRING_ZERO_OFFSET, NULL},
+    {"random_offset", (getter)lfo_getter_random_offset, (setter)lfo_setter_random_offset, DOCSTRING_RANDOM_OFFSET, NULL},
     {"pw", (getter)lfo_getter_pw, (setter)lfo_setter_pw, DOCSTRING_PW, NULL},
     {"pw_offset", (getter)lfo_getter_pw_offset, (setter)lfo_setter_pw_offset, DOCSTRING_PW_OFFSET, NULL},
 
@@ -404,123 +417,133 @@ static double get_triangle(LFO *self) {
 }
 
 static double get_square(LFO *self) {
-        double t = get_normalized(self);
+    double t = get_normalized(self);
 
-        if (t >= self->pw_offset && t <= self->pw + self->pw_offset) {
-            return 1;
-        } else {
-            return 0;
-        }
+    if (t >= self->pw_offset && t <= self->pw + self->pw_offset) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+static double get_one(LFO *self) {
+    return 1.0;
+}
+
+static double get_zero(LFO *self) {
+    return 0.0;
+}
+
+static double get_random(LFO *self) {
+    return (double)rand() / (double)RAND_MAX;
+}
+
+static double get_inv_sine(LFO *self) {
+    return -get_sine(self);
+}
+
+static double get_inv_cosine(LFO *self) {
+    return -get_cosine(self);
+}
+
+static double get_inv_triangle(LFO *self) {
+    return 1 - get_triangle(self);
+}
+
+static double get_inv_sawtooth(LFO *self) {
+    return 1 - get_sawtooth(self);
+}
+
+static double get_inv_square(LFO *self) {
+    return 1 - get_square(self);
+}
+
+static double get_inv_one(LFO *self) {
+    return 1 - get_one(self);
+}
+
+static double get_inv_zero(LFO *self) {
+    return 1 - get_zero(self);
+}
+
+static double get_inv_random(LFO *self) {
+    return 1 - get_random(self);
+}
+
+
+/*----------------------------------------------------------------------
+      __                  _   _                 
+     / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+    | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
+    |  _| |_| | | | | (__| |_| | (_) | | | \__ \
+    |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
+                                            
+----------------------------------------------------------------------*/
+
+/* None */
+
+/*----------------------------------------------------------------------
+          _                     _       __ 
+      ___| | __ _ ___ ___    __| | ___ / _|
+     / __| |/ _` / __/ __|  / _` |/ _ \ |_ 
+    | (__| | (_| \__ \__ \ | (_| |  __/  _|
+     \___|_|\__,_|___/___/  \__,_|\___|_|  
+                                       
+----------------------------------------------------------------------*/
+
+
+static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
+    LFO *self;
+
+    self = (LFO *)type->tp_alloc(type, 0);
+    if (self != NULL) {
+        /* Alloc members here if appropriate */
     }
 
-    static double get_one(LFO *self) {
-        return 1.0;
-    }
-
-    static double get_zero(LFO *self) {
-        return 0.0;
-    }
-
-    static double get_inv_sine(LFO *self) {
-        return -get_sine(self);
-    }
-
-    static double get_inv_cosine(LFO *self) {
-        return -get_cosine(self);
-    }
-
-    static double get_inv_triangle(LFO *self) {
-        return 1 - get_triangle(self);
-    }
-
-    static double get_inv_sawtooth(LFO *self) {
-        return 1 - get_sawtooth(self);
-    }
-
-    static double get_inv_square(LFO *self) {
-        return 1 - get_square(self);
-    }
-
-    static double get_inv_one(LFO *self) {
-        return 1 - get_one(self);
-    }
-
-    static double get_inv_zero(LFO *self) {
-        return 1 - get_zero(self);
-    }
+    return (PyObject *)self;
+}
 
 
-    /*----------------------------------------------------------------------
-          __                  _   _                 
-         / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-        | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
-        |  _| |_| | | | | (__| |_| | (_) | | | \__ \
-        |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
-                                                
-    ----------------------------------------------------------------------*/
+static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
+    static char *kwargslist[] = {
+        "period", "cycles", "frequency",
+        "sine_attenuverter", "sine_offset",
+        "cosine_attenuverter", "cosine_offset",
+        "triangle_attenuverter", "triangle_offset",
+        "sawtooth_attenuverter", "sawtooth_offset",
+        "pw", "pw_offset",
+        "square_attenuverter", "square_offset",
+        "one_attenuverter", "one_offset",
+        "zero_attenuverter", "zero_offset",
+        "random_attenuverter", "random_offset",
+        NULL};
 
-    /* None */
+    timespec_get(&self->t0, TIME_UTC);
+    self->period = 1.0;
 
-    /*----------------------------------------------------------------------
-              _                     _       __ 
-          ___| | __ _ ___ ___    __| | ___ / _|
-         / __| |/ _` / __/ __|  / _` |/ _ \ |_ 
-        | (__| | (_| \__ \__ \ | (_| |  __/  _|
-         \___|_|\__,_|___/___/  \__,_|\___|_|  
-                                           
-    ----------------------------------------------------------------------*/
+    self->cycles = 0;
 
+    self->frozen = 0;
+    self->_frozen_phase = 0.0;
 
-    static PyObject * lfo_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-        LFO *self;
-
-        self = (LFO *)type->tp_alloc(type, 0);
-        if (self != NULL) {
-            /* Alloc members here if appropriate */
-        }
-
-        return (PyObject *)self;
-    }
-
-
-    static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
-        static char *kwargslist[] = {
-            "period", "cycles", "frequency",
-            "sine_attenuverter", "sine_offset",
-            "cosine_attenuverter", "cosine_offset",
-            "triangle_attenuverter", "triangle_offset",
-            "sawtooth_attenuverter", "sawtooth_offset",
-            "pw", "pw_offset",
-            "square_attenuverter", "square_offset",
-            "one_attenuverter", "one_offset",
-            "zero_attenuverter", "zero_offset",
-            NULL};
-
-        timespec_get(&self->t0, TIME_UTC);
-        self->period = 1.0;
-
-        self->cycles = 0;
-        self->_cycles_left = 0;
-
-        self->frozen = 0;
-        self->_frozen_phase = 0.0;
-
-        self->sine_attenuverter = 1.0;
-        self->sine_offset = 0.0;
-        self->cosine_attenuverter = 1.0;
-        self->cosine_offset = 0.0;
-        self->triangle_attenuverter = 1.0;
-        self->triangle_offset = 0.0;
-        self->sawtooth_attenuverter = 1.0;
-        self->sawtooth_offset = 0.0;
-        self->square_attenuverter = 1.0;
-        self->square_offset = 0.0;
-        self->pw = 0.5;
-        self->pw_offset = 0.5;
+    self->sine_attenuverter = 1.0;
+    self->sine_offset = 0.0;
+    self->cosine_attenuverter = 1.0;
+    self->cosine_offset = 0.0;
+    self->triangle_attenuverter = 1.0;
+    self->triangle_offset = 0.0;
+    self->sawtooth_attenuverter = 1.0;
+    self->sawtooth_offset = 0.0;
+    self->square_attenuverter = 1.0;
+    self->square_offset = 0.0;
+    self->pw = 0.5;
+    self->pw_offset = 0.5;
     self->one_attenuverter = 1.0;
     self->one_offset = 0.0;
     self->zero_attenuverter = 1.0;
     self->zero_offset = 0.0;
+    self->random_attenuverter = 1.0;
+    self->random_offset = 0.0;
 
     double frequency = 0.0;
 
@@ -534,7 +557,8 @@ static double get_square(LFO *self) {
 		&self->pw, &self->pw_offset,
 		&self->square_attenuverter, &self->square_offset,
 		&self->one_attenuverter, &self->one_offset,
-		&self->zero_attenuverter, &self->zero_offset))
+		&self->zero_attenuverter, &self->zero_offset,
+		&self->random_attenuverter, &self->random_offset))
 	return -1;
 
     if (frequency) {
@@ -688,6 +712,7 @@ static PyObject * lfo_set_attenuverters(LFO *self, PyObject *o) {
     self->square_attenuverter = val;
     self->one_attenuverter = val;
     self->zero_attenuverter = val;
+    self->random_attenuverter = val;
 
     Py_RETURN_NONE;
 }
@@ -703,6 +728,7 @@ static PyObject * lfo_set_offsets(LFO *self, PyObject *o) {
     self->square_offset = val;
     self->one_offset = val;
     self->zero_offset = val;
+    self->random_offset = val;
 
     Py_RETURN_NONE;
 }
@@ -752,6 +778,11 @@ static PyObject * lfo_getter_zero(LFO *self, void *closure) {
 }
 
 
+static PyObject * lfo_getter_random(LFO *self, void *closure) {
+    return PyFloat_FromDouble(get_random(self) * self->random_attenuverter + self->random_offset);
+}
+
+
 static PyObject * lfo_getter_inv_sine(LFO *self, void *closure) {
     return PyFloat_FromDouble(get_inv_sine(self) * self->sine_attenuverter + self->sine_offset);
 }
@@ -784,6 +815,11 @@ static PyObject * lfo_getter_inv_one(LFO *self, void *closure) {
 
 static PyObject * lfo_getter_inv_zero(LFO *self, void *closure) {
     return PyFloat_FromDouble(get_inv_zero(self) * self->zero_attenuverter + self->zero_offset);
+}
+
+
+static PyObject * lfo_getter_inv_random(LFO *self, void *closure) {
+    return PyFloat_FromDouble(get_inv_random(self) * self->random_attenuverter + self->random_offset);
 }
 
 static PyObject * lfo_getter_period(LFO *self, void *closure) {
@@ -910,6 +946,7 @@ static int lfo_setter_one_attenuverter(LFO *self, PyObject *val, void *closure) 
     return 0;
 }
 
+
 static PyObject * lfo_getter_zero_attenuverter(LFO *self, void *closure) {
     return PyFloat_FromDouble(self->zero_attenuverter);
 }
@@ -917,6 +954,18 @@ static PyObject * lfo_getter_zero_attenuverter(LFO *self, void *closure) {
 
 static int lfo_setter_zero_attenuverter(LFO *self, PyObject *val, void *closure) {
     self->zero_attenuverter = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
+
+static PyObject * lfo_getter_random_attenuverter(LFO *self, void *closure) {
+    return PyFloat_FromDouble(self->random_attenuverter);
+}
+
+
+static int lfo_setter_random_attenuverter(LFO *self, PyObject *val, void *closure) {
+    self->random_attenuverter = PyFloat_AsDouble(val);
 
     return 0;
 }
@@ -1022,6 +1071,17 @@ static PyObject * lfo_getter_zero_offset(LFO *self, void *closure) {
 
 static int lfo_setter_zero_offset(LFO *self, PyObject *val, void *closure) {
     self->zero_offset = PyFloat_AsDouble(val);
+
+    return 0;
+}
+
+
+static PyObject * lfo_getter_random_offset(LFO *self, void *closure) {
+    return PyFloat_FromDouble(self->random_offset);
+}
+
+static int lfo_setter_random_offset(LFO *self, PyObject *val, void *closure) {
+    self->random_offset = PyFloat_AsDouble(val);
 
     return 0;
 }

@@ -50,6 +50,9 @@ def test_defaults(lfo1):
     assert lfo1.zero_attenuverter == 1.0
     assert lfo1.zero_offset == 0.0
 
+    assert lfo1.random_attenuverter == 1.0
+    assert lfo1.random_offset == 0.0
+
     # assert approx(lt(), 0.01) == approx(lt(), 0.01)
 
 
@@ -188,6 +191,12 @@ def test_one_and_zero(lfo1):
     assert zero == 0.0
     assert inv_zero == 1.0
 
+def test_random(lfo1):
+    assert approx(lfo1.random, abs=0.001) != lfo1.random
+
+    rand, inv_rand = lfo1.random, lfo1.inv_random
+    assert rand != 1 - inv_rand
+
 def test_attenuverters(lfo1):
     lfo1.set_attenuverters(2)
     sleep(0.5)
@@ -198,7 +207,7 @@ def test_attenuverters(lfo1):
         sawtooth, inv_sawtooth,
         square, inv_square,
         one, inv_one,
-        zero, inv_zero
+        zero, inv_zero,
     ) = (
         lfo1.sine, lfo1.inv_sine,
         lfo1.cosine, lfo1.inv_cosine,
@@ -206,7 +215,7 @@ def test_attenuverters(lfo1):
         lfo1.sawtooth, lfo1.inv_sawtooth,
         lfo1.square, lfo1.inv_square,
         lfo1.one, lfo1.inv_one,
-        lfo1.zero, lfo1.inv_zero
+        lfo1.zero, lfo1.inv_zero,
     )
 
     assert approx(sine, abs=0.025) == 0.0
@@ -223,6 +232,8 @@ def test_attenuverters(lfo1):
     assert approx(inv_one, abs=0.025) == 0.0
     assert approx(zero, abs=0.025) == 0.0
     assert approx(inv_zero, abs=0.025) == 2.0
+    assert any(lfo1.random > 1 for _ in range(100))
+    assert any(lfo1.random > 1 for _ in range(100))
 
 def test_offsets(lfo1):
     lfo1.set_offsets(1)
@@ -234,7 +245,7 @@ def test_offsets(lfo1):
         sawtooth, inv_sawtooth,
         square, inv_square,
         one, inv_one,
-        zero, inv_zero
+        zero, inv_zero,
     ) = (
         lfo1.sine, lfo1.inv_sine,
         lfo1.cosine, lfo1.inv_cosine,
@@ -242,7 +253,7 @@ def test_offsets(lfo1):
         lfo1.sawtooth, lfo1.inv_sawtooth,
         lfo1.square, lfo1.inv_square,
         lfo1.one, lfo1.inv_one,
-        lfo1.zero, lfo1.inv_zero
+        lfo1.zero, lfo1.inv_zero,
     )
 
     assert approx(sine, abs=0.025) == 1.0
@@ -259,6 +270,8 @@ def test_offsets(lfo1):
     assert approx(inv_one, abs=0.025) == 1.0
     assert approx(zero, abs=0.025) == 1.0
     assert approx(inv_zero, abs=0.025) == 2.0
+    assert all(lfo1.random > 1 for _ in range(100))
+    assert all(lfo1.random > 1 for _ in range(100))
 
 
 def test_cycles(lfo1):
@@ -271,7 +284,8 @@ def test_cycles(lfo1):
         sawtooth, inv_sawtooth,
         square, inv_square,
         one, inv_one,
-        zero, inv_zero
+        zero, inv_zero,
+        random, inv_random,
     ) = (
         lfo1.sine, lfo1.inv_sine,
         lfo1.cosine, lfo1.inv_cosine,
@@ -279,7 +293,8 @@ def test_cycles(lfo1):
         lfo1.sawtooth, lfo1.inv_sawtooth,
         lfo1.square, lfo1.inv_square,
         lfo1.one, lfo1.inv_one,
-        lfo1.zero, lfo1.inv_zero
+        lfo1.zero, lfo1.inv_zero,
+        lfo1.random, lfo1.inv_random,
     )
 
     assert approx(sine, abs=0.025) == 0.0

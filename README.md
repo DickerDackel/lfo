@@ -6,6 +6,7 @@ controllable knob or slider, they control the speed of oscillators, the fading
 in and out of filters, they can control each other, the possibilities are
 literally endless._
 
+_This class transfers that concept to python._
 
 ## Synopsis
 
@@ -36,13 +37,14 @@ you always get consistent and reproducible values out of it.
 But LFOs come in many different shapes.  Here are the ones implemented right
 now, but I'm open to suggestions to extend this list:
 
-* A sine wave (and a cosine wave that I don't count extra)
-* A triangular wave
-* A sawtooth wave
-* A square wave
-* A wave that always outputs 1
-* A wave that always outputs 0
-* The inverse of all these
+    * lfo.sine, lfo.cosine - A sine wave (and a cosine wave that I don't count extra)
+    * lfo.triangle - A triangular wave
+    * lfo.sawtooth - A sawtooth wave
+    * lfo.square - A square wave
+    * lfo.one - A wave that always outputs 1
+    * lfo.zero - A wave that always outputs 0
+    * lfo.random - A wave that outputs random values
+    * lfo.inv_<waveform> - The inverse of all these
 
 The lfo registers the start time of its instantiation.  If no period length -
 the duration of one single wave - is provided, it defaults to 1 second.
@@ -126,6 +128,13 @@ wave repeats.
 duration of one wave cycle, the frequency defines the number of cycles per
 second.
 
+#### `lfo.cycles`
+
+The number of periods this lfo will run through.  After it that, it will
+return the value of the end of its period until it is reset.
+
+See note at `lfo.random`.
+
 
 ### Wave Outputs, Read-Only
 
@@ -183,6 +192,19 @@ one and zero can be very useful if you want to deactivate an changing
 behaviour in an object without adding a special if-clause or changing its
 interface.
 
+
+#### Random
+
+    `lfo.random`, `lfo.inv_random`
+
+The random wave contains values that are... well, random.  They are not a
+function of time.
+
+Note that `inv_random` makes zero sense but it still implemented to provide a
+consistent interface.
+
+Note: A side effect of being independent of time is, that this wave will not
+"stop" once the all cycles have finished.
 
 ### Waveform Control Parameters
 
@@ -259,7 +281,7 @@ This will be a value between 0 and `lfo.period`.
 Both attributes will reset after each period.
 
 
-#### `lfo.cycles`
+#### `lfo.cycle`
 
 The number of the loop that the lfo is currently in.  Increments after each
 period.

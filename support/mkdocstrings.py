@@ -16,13 +16,14 @@ you always get consistent and reproducible values out of it.
 But LFOs come in many different shapes.  Here are the ones implemented right
 now, but I'm open to suggestions to extend this list:
 
-    * A sine wave (and a cosine wave that I don't count extra)
-    * A triangular wave
-    * A sawtooth wave
-    * A square wave
-    * A wave that always outputs 1
-    * A wave that always outputs 0
-    * The inverse of all these
+    * lfo.sine, lfo.cosine - A sine wave (and a cosine wave that I don't count extra)
+    * lfo.triangle - A triangular wave
+    * lfo.sawtooth - A sawtooth wave
+    * lfo.square - A square wave
+    * lfo.one - A wave that always outputs 1
+    * lfo.zero - A wave that always outputs 0
+    * lfo.random - A wave that outputs random values
+    * lfo.inv_<waveform> - The inverse of all these
 
 The lfo registers the start time of its instantiation.  If no period length -
 the duration of one single wave - is provided, it defaults to 1 second.
@@ -57,8 +58,11 @@ attributes:
     cycles: int = 0
         Limit the number of cycles the LFO runs.
 
-        If the number is reached, the LFO will constantly return its final
-        value.
+        If the number is reached, the LFO will constantly return the proper
+        value for the `lfo.period` time.
+
+        **NOTE**: That means that the random wave will continue, since it's
+        value is not dependent of time.
 
         If the LFO us used as an iterator, ending the cycle will raise
         StopIteration.
@@ -137,6 +141,12 @@ Wave attributes:
             zero_attenuverter
             one_offset
             zero_offset
+
+        Random
+            random
+            inv_random
+            random_attenuverter
+            random_offset
 
 
 Additional methods and features:
@@ -222,6 +232,9 @@ Unfreezing an already running LFO does nothing.
     'ZERO':
 """Constant 0 * attenuverter + offset""",
 
+    'RANDOM':
+"""The random wave""",
+
     'INV_SINE':
 """The inverted sine wave""",
 
@@ -242,6 +255,9 @@ Unfreezing an already running LFO does nothing.
 
     'INV_ZERO':
 """The inverted zero wave""",
+
+    'INV_RANDOM':
+"""The inverted random wave""",
 
     'SINE_ATTENUVERTER':
 """The attenuverter for sine""",
@@ -264,6 +280,9 @@ Unfreezing an already running LFO does nothing.
     'ZERO_ATTENUVERTER':
 """The attenuverter for zero""",
 
+    'RANDOM_ATTENUVERTER':
+"""The attenuverter for random""",
+
     'SINE_OFFSET':
 """The offset for sine""",
 
@@ -284,6 +303,9 @@ Unfreezing an already running LFO does nothing.
 
     'ZERO_OFFSET':
 """The offset for zero""",
+
+    'RANDOM_OFFSET':
+"""The offset for random""",
 
     'PW':
 """The pulse width of the square wave""",
