@@ -771,13 +771,12 @@ static PyObject * lfo_set_offsets(LFO *self, PyObject *o) {
 
 
 static PyObject * lfo_set_default_wave(LFO *self, PyObject *o) {
-    PyObject *conv;
-    if (!PyNumber_Check(o) || (conv = PyNumber_Long(o)) == NULL) {
-	PyErr_SetString(PyExc_TypeError, "lfo_set_default_wave expects a number");
+    long index = PyLong_AsLong(o);
+    if (PyErr_Occurred()) {
+	PyErr_SetString(PyExc_TypeError, "`rewind` expects a number");
 	return NULL;
     }
 
-    long index = PyLong_AsLong(conv);
     if (index < 0 || index >= no_of_wave_functions) {
 	return PyErr_Format(PyExc_ValueError,
 		            "wave function number must be between 0 and %d",
