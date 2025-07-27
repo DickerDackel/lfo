@@ -1,3 +1,12 @@
+# v0.0.5
+
+- Docs, docs, docs
+- Rewind & Skip added
+- Random wave added
+- set_default_wave added
+- Bugfixes in richcompare
+- Various refactors
+
 # v0.0.4
 
 - BREAKING CHANGE: sine and cosine are reset to the origin
