@@ -1,3 +1,8 @@
+# v0.0.6
+
+- Doc cleanups
+- default_wave instantiation argument and attribute
+
 # v0.0.5
 
 - Docs, docs, docs
