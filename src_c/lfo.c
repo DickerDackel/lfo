@@ -3,26 +3,28 @@
 #include <float.h>
 #include <time.h>
 #include <Python.h>
+#include <pyerrors.h>
+#include <object.h>
 
 
 /*----------------------------------------------------------------------
-     ____                 _        _                 
-    |  _ \  ___   ___ ___| |_ _ __(_)_ __   __ _ ___ 
+     ____                 _        _
+    |  _ \  ___   ___ ___| |_ _ __(_)_ __   __ _ ___
     | | | |/ _ \ / __/ __| __| '__| | '_ \ / _` / __|
     | |_| | (_) | (__\__ \ |_| |  | | | | | (_| \__ \
     |____/ \___/ \___|___/\__|_|  |_|_| |_|\__, |___/
-					   |___/     
+					   |___/
 ----------------------------------------------------------------------*/
 
 #include <docstrings.h>
 
 /*----------------------------------------------------------------------
-     ____        __ _       _ _   _                 
-    |  _ \  ___ / _(_)_ __ (_) |_(_) ___  _ __  ___ 
+     ____        __ _       _ _   _
+    |  _ \  ___ / _(_)_ __ (_) |_(_) ___  _ __  ___
     | | | |/ _ \ |_| | '_ \| | __| |/ _ \| '_ \/ __|
     | |_| |  __/  _| | | | | | |_| | (_) | | | \__ \
     |____/ \___|_| |_|_| |_|_|\__|_|\___/|_| |_|___/
-                                                
+
 ----------------------------------------------------------------------*/
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -65,7 +67,7 @@ typedef struct LFO {
     double random_attenuverter;
     double random_offset;
 
-    GetWavePtr _default_wave;
+    GetWavePtr default_wave;
 } LFO;
 
 /* Utilities */
@@ -79,6 +81,8 @@ static void unfreeze(LFO *self);
 static double get_t(LFO *self);
 static double get_normalized(LFO *self);
 static int get_cycle(LFO *self);
+
+static int set_default_wave(LFO *self, int index);
 
 static double get_sine(LFO *self);
 static double get_cosine(LFO *self);
@@ -158,6 +162,8 @@ static PyObject * lfo_getter_normalized(LFO *self, void *closure);
 static PyObject * lfo_getter_cycle(LFO *self, void *closure);
 static PyObject * lfo_getter_frozen(LFO *self, void *closure);
 static int lfo_setter_frozen(LFO *self, PyObject *val, void *closure);
+static PyObject * lfo_getter_default_wave(LFO *self, void *closure);
+static int lfo_setter_default_wave(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_sine_attenuverter(LFO *self, void *closure);
 static int lfo_setter_sine_attenuverter(LFO *self, PyObject *val, void *closure);
 static PyObject * lfo_getter_cosine_attenuverter(LFO *self, void *closure);
@@ -219,12 +225,12 @@ PyMODINIT_FUNC PyInit__lfo(void);
 
 
 /*----------------------------------------------------------------------
-     _     _           _ _                 
-    | |__ (_)_ __   __| (_)_ __   __ _ ___ 
+     _     _           _ _
+    | |__ (_)_ __   __| (_)_ __   __ _ ___
     | '_ \| | '_ \ / _` | | '_ \ / _` / __|
     | |_) | | | | | (_| | | | | | (_| \__ \
     |_.__/|_|_| |_|\__,_|_|_| |_|\__, |___/
-				 |___/     
+				 |___/
 ----------------------------------------------------------------------*/
 
 
@@ -245,7 +251,7 @@ static PyMethodDef lfo_methods[] = {
     {"is_frozen", (PyCFunction)lfo_is_frozen, METH_NOARGS, DOCSTRING_ISFROZEN},
     {"set_attenuverters", (PyCFunction)lfo_set_attenuverters, METH_O, DOCSTRING_SETATTENUVERTERS},
     {"set_offsets", (PyCFunction)lfo_set_offsets, METH_O, DOCSTRING_SETOFFSETS},
-    {"set_default_wave", (PyCFunction)lfo_set_default_wave, METH_O, DOCSTRING_SETOFFSETS},
+    {"set_default_wave", (PyCFunction)lfo_set_default_wave, METH_O, DOCSTRING_DEFAULTWAVE},
     {"rewind", (PyCFunction)lfo_rewind, METH_O, DOCSTRING_REWIND},
     {"skip", (PyCFunction)lfo_skip, METH_O, DOCSTRING_SKIP},
     {NULL},
@@ -258,6 +264,7 @@ static PyGetSetDef lfo_getset[] = {
     {"cycles", (getter)lfo_getter_cycles, (setter)lfo_setter_cycles, DOCSTRING_CYCLES, NULL},
     {"frequency", (getter)lfo_getter_frequency, (setter)lfo_setter_frequency, DOCSTRING_FREQUENCY, NULL},
     {"frozen", (getter)lfo_getter_frozen, (setter)lfo_setter_frozen, DOCSTRING_FROZEN, NULL},
+    {"default_wave", (getter)lfo_getter_default_wave, (setter)lfo_setter_default_wave, DOCSTRING_DEFAULTWAVE, NULL},
 
     {"t", (getter)lfo_getter_t, NULL, DOCSTRING_T, NULL},
     {"normalized", (getter)lfo_getter_normalized, NULL, DOCSTRING_NORMALIZED, NULL},
@@ -335,8 +342,8 @@ static PyModuleDef lfo_module = {
 
 
 /*----------------------------------------------------------------------
-	   _   _ _ _ _   _           
-     _   _| |_(_) (_) |_(_) ___  ___ 
+	   _   _ _ _ _   _
+     _   _| |_(_) (_) |_(_) ___  ___
     | | | | __| | | | __| |/ _ \/ __|
     | |_| | |_| | | | |_| |  __/\__ \
      \__,_|\__|_|_|_|\__|_|\___||___/
@@ -419,6 +426,17 @@ static int get_cycle(LFO *self) {
 }
 
 
+static int set_default_wave(LFO *self, int index) {
+    if (index < 0 || index > no_of_wave_functions) {
+        PyErr_SetString(PyExc_ValueError, "Wave function index out of range.");
+        return -1;
+    }
+
+    self->default_wave = wave_functions[index];
+    return 0;
+}
+
+
 static double get_sine(LFO *self) {
     double t = get_normalized(self);
 
@@ -434,6 +452,7 @@ static double get_cosine(LFO *self) {
     return res * self->cosine_attenuverter + self->cosine_offset;
 }
 
+
 static double get_triangle(LFO *self) {
     double t = get_normalized(self);
 
@@ -442,12 +461,14 @@ static double get_triangle(LFO *self) {
 
 }
 
+
 static double get_sawtooth(LFO *self) {
     double t = get_normalized(self);
 
     double res = (1.0 - t);
     return res * self->sawtooth_attenuverter + self->sawtooth_offset;
 }
+
 
 static double get_square(LFO *self) {
     double t = get_normalized(self);
@@ -461,18 +482,22 @@ static double get_square(LFO *self) {
     return res * self->square_attenuverter + self->square_offset;
 }
 
+
 static double get_one(LFO *self) {
     return 1.0 * self->one_attenuverter + self->one_offset;
 }
+
 
 static double get_zero(LFO *self) {
     return 0.0 * self->zero_attenuverter + self->zero_offset;;
 }
 
+
 static double get_random(LFO *self) {
     double res = (double)rand() / (double)RAND_MAX;
     return res * self->random_attenuverter + self->random_offset;
 }
+
 
 /*
  * NOTE:
@@ -486,12 +511,14 @@ static double get_inv_sine(LFO *self) {
     return res * self->sine_attenuverter + self->sine_offset;
 }
 
+
 static double get_inv_cosine(LFO *self) {
     double t = get_normalized(self);
 
     double res = -cos(t * 2 * M_PI);
     return res * self->cosine_attenuverter + self->cosine_offset;
 }
+
 
 static double get_inv_triangle(LFO *self) {
     double t = get_normalized(self);
@@ -500,12 +527,14 @@ static double get_inv_triangle(LFO *self) {
     return res * self->triangle_attenuverter + self->triangle_offset;
 }
 
+
 static double get_inv_sawtooth(LFO *self) {
     double t = get_normalized(self);
 
     double res = 1 - (1.0 - t);
     return res * self->sawtooth_attenuverter + self->sawtooth_offset;
 }
+
 
 static double get_inv_square(LFO *self) {
     double t = get_normalized(self);
@@ -519,13 +548,16 @@ static double get_inv_square(LFO *self) {
     return res * self->square_attenuverter + self->square_offset;
 }
 
+
 static double get_inv_one(LFO *self) {
     return 0.0 * self->one_attenuverter + self->one_offset;
 }
 
+
 static double get_inv_zero(LFO *self) {
     return 1.0 * self->zero_attenuverter + self->zero_offset;;
 }
+
 
 // This makes zero sense, but it should be symmetrical
 static double get_inv_random(LFO *self) {
@@ -535,23 +567,23 @@ static double get_inv_random(LFO *self) {
 
 
 /*----------------------------------------------------------------------
-      __                  _   _                 
-     / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+      __                  _   _
+     / _|_   _ _ __   ___| |_(_) ___  _ __  ___
     | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
     |  _| |_| | | | | (__| |_| | (_) | | | \__ \
     |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
-                                            
+
 ----------------------------------------------------------------------*/
 
 /* None */
 
 /*----------------------------------------------------------------------
-          _                     _       __ 
+          _                     _       __
       ___| | __ _ ___ ___    __| | ___ / _|
-     / __| |/ _` / __/ __|  / _` |/ _ \ |_ 
+     / __| |/ _` / __/ __|  / _` |/ _ \ |_
     | (__| | (_| \__ \__ \ | (_| |  __/  _|
-     \___|_|\__,_|___/___/  \__,_|\___|_|  
-                                       
+     \___|_|\__,_|___/___/  \__,_|\___|_|
+
 ----------------------------------------------------------------------*/
 
 
@@ -579,6 +611,7 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
         "one_attenuverter", "one_offset",
         "zero_attenuverter", "zero_offset",
         "random_attenuverter", "random_offset",
+        "default_wave",
         NULL};
 
     timespec_get(&self->t0, TIME_UTC);
@@ -608,11 +641,11 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
     self->random_attenuverter = 1.0;
     self->random_offset = 0.0;
 
-    self->_default_wave = &get_sine;
     double frequency = 0.0;
+    long default_wave = 0;
 
     if (!PyArg_ParseTupleAndKeywords(
-		args, kwargs, "|d$iddddddddddddddddd", kwargslist,
+        args, kwargs, "|d$idddddddddddddddddddi", kwargslist,
 		&self->period, &self->cycles, &frequency,
 		&self->sine_attenuverter, &self->sine_offset,
 		&self->cosine_attenuverter, &self->cosine_offset,
@@ -622,12 +655,16 @@ static int lfo___init__(LFO *self, PyObject *args, PyObject *kwargs) {
 		&self->square_attenuverter, &self->square_offset,
 		&self->one_attenuverter, &self->one_offset,
 		&self->zero_attenuverter, &self->zero_offset,
-		&self->random_attenuverter, &self->random_offset))
+		&self->random_attenuverter, &self->random_offset,
+		&default_wave))
 	return -1;
 
     if (frequency) {
         self->period = 1.0 / frequency;
     }
+
+    if (set_default_wave(self, default_wave) < 0)
+        return -1;
 
     return 0;
 }
@@ -639,12 +676,12 @@ static void lfo_dealloc(LFO *self) {
 
 
 /*----------------------------------------------------------------------
-      ____ _                     _                 _           
-     / ___| | __ _ ___ ___    __| |_   _ _ __   __| | ___ _ __ 
+      ____ _                     _                 _
+     / ___| | __ _ ___ ___    __| |_   _ _ __   __| | ___ _ __
     | |   | |/ _` / __/ __|  / _` | | | | '_ \ / _` |/ _ \ '__|
-    | |___| | (_| \__ \__ \ | (_| | |_| | | | | (_| |  __/ |   
-     \____|_|\__,_|___/___/  \__,_|\__,_|_| |_|\__,_|\___|_|   
-                                                           
+    | |___| | (_| \__ \__ \ | (_| | |_| | | | | (_| |  __/ |
+     \____|_|\__,_|___/___/  \__,_|\__,_|_| |_|\__,_|\___|_|
+
 ----------------------------------------------------------------------*/
 
 static PyObject * lfo___repr__(LFO *self) {
@@ -659,21 +696,21 @@ static PyObject * lfo___repr__(LFO *self) {
 
 
 static PyObject * lfo___call__(LFO *self) {
-    return PyFloat_FromDouble(self->_default_wave(self));
+    return PyFloat_FromDouble(self->default_wave(self));
 }
 
 
 static int lfo___bool__(LFO *self) {
-    return self->_default_wave(self) > 0.5;
+    return self->default_wave(self) > 0.5;
 }
 
 
 static PyObject * lfo___int__(LFO *self) {
-    return PyLong_FromDouble(self->_default_wave(self) > 0.5 ? 1.0 : 0.0);
+    return PyLong_FromDouble(self->default_wave(self) > 0.5 ? 1.0 : 0.0);
 }
 
 static PyObject * lfo___float__(LFO *self) {
-    return PyFloat_FromDouble(self->_default_wave(self));
+    return PyFloat_FromDouble(self->default_wave(self));
 }
 
 static PyObject * lfo___iter__(PyObject *self) {
@@ -683,14 +720,14 @@ static PyObject * lfo___iter__(PyObject *self) {
 
 static PyObject * lfo___next__(LFO *self) {
     if ((self->cycles == 0) || (self->cycles && get_cycle(self) < self->cycles)) {
-        return PyFloat_FromDouble(self->_default_wave(self));
+        return PyFloat_FromDouble(self->default_wave(self));
     } else {
         return NULL;
     }
 }
 
 static PyObject * lfo_richcompare(PyObject *self, PyObject *o, int op) {
-    double this = ((LFO *)self)->_default_wave((LFO *)self);
+    double this = ((LFO *)self)->default_wave((LFO *)self);
 
     PyObject *conv;
     if ((conv = PyNumber_Float(o)) == NULL) {
@@ -705,12 +742,12 @@ static PyObject * lfo_richcompare(PyObject *self, PyObject *o, int op) {
 
 
 /*----------------------------------------------------------------------
-  ____ _                                _   _               _     
- / ___| | __ _ ___ ___   _ __ ___   ___| |_| |__   ___   __| |___ 
+  ____ _                                _   _               _
+ / ___| | __ _ ___ ___   _ __ ___   ___| |_| |__   ___   __| |___
 | |   | |/ _` / __/ __| | '_ ` _ \ / _ \ __| '_ \ / _ \ / _` / __|
 | |___| | (_| \__ \__ \ | | | | | |  __/ |_| | | | (_) | (_| \__ \
  \____|_|\__,_|___/___/ |_| |_| |_|\___|\__|_| |_|\___/ \__,_|___/
-                                                                  
+
 ----------------------------------------------------------------------*/
 
 static PyObject * lfo_reset(LFO *self, PyObject *args, PyObject *kwargs) {
@@ -781,13 +818,8 @@ static PyObject * lfo_set_default_wave(LFO *self, PyObject *o) {
 	return NULL;
     }
 
-    if (index < 0 || index >= no_of_wave_functions) {
-	return PyErr_Format(PyExc_ValueError,
-		            "wave function number must be between 0 and %d",
-		            no_of_wave_functions);
-    }
-
-    self->_default_wave = wave_functions[index];
+    if (set_default_wave(self, index) < 0)
+        return NULL;
 
     Py_RETURN_NONE;
 }
@@ -824,8 +856,8 @@ static PyObject * lfo_skip(LFO *self, PyObject *o) {
 
 
 /*----------------------------------------------------------------------
-	   _   _        _ _           _            
-      __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___ 
+	   _   _        _ _           _
+      __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___
      / _` | __| __| '__| | '_ \| | | | __/ _ \/ __|
     | (_| | |_| |_| |  | | |_) | |_| | ||  __/\__ \
      \__,_|\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
@@ -911,6 +943,7 @@ static PyObject * lfo_getter_inv_random(LFO *self, void *closure) {
     return PyFloat_FromDouble(get_inv_random(self));
 }
 
+
 static PyObject * lfo_getter_period(LFO *self, void *closure) {
     return PyFloat_FromDouble(self->period);
 }
@@ -921,6 +954,7 @@ static int lfo_setter_period(LFO *self, PyObject *val, void *closure) {
 
     return 0;
 }
+
 
 static PyObject * lfo_getter_cycles(LFO *self, void *closure) {
     return PyLong_FromLong(self->cycles);
@@ -947,6 +981,7 @@ static int lfo_setter_frequency(LFO *self, PyObject *val, void *closure) {
     return 0;
 }
 
+
 static PyObject * lfo_getter_frozen(LFO *self, void *closure) {
     if (self->frozen)
 	Py_RETURN_TRUE;
@@ -961,6 +996,45 @@ static int lfo_setter_frozen(LFO *self, PyObject *val, void *closure) {
     } else {
 	unfreeze(self);
     }
+
+    return 0;
+}
+
+
+static PyObject * lfo_getter_default_wave(LFO *self, void *closure) {
+    for (int i = 0; i < no_of_wave_functions; i++) {
+        if (self->default_wave == wave_functions[i]) {
+            PyObject *lfo_mod = PyImport_AddModule("lfo");
+            if (lfo_mod == NULL)
+                return NULL;
+
+            PyObject *wave_enum = PyObject_GetAttrString(lfo_mod, "Wave");
+            if (wave_enum == NULL)
+                goto bailout;
+
+            PyObject *wave_entry = PyObject_CallFunction(wave_enum, "(i)", i);
+            if (wave_entry == NULL)
+                goto bailout;
+
+            Py_DECREF(wave_enum);
+            return wave_entry;
+
+        bailout:
+            Py_XDECREF(wave_enum);
+            return NULL;
+        }
+    }
+
+    PyErr_SetString(PyExc_RuntimeError, "default_wave index not found, mustn't happen!");
+    return NULL;
+}
+
+
+static int lfo_setter_default_wave(LFO *self, PyObject *val, void *closure) {
+    long index = PyLong_AsLong(val);
+
+    if (set_default_wave(self, index) < 0)
+        return -1;
 
     return 0;
 }
@@ -1192,8 +1266,8 @@ static PyObject * lfo_getter_cycle(LFO *self, void *closure) {
 
 
 /*----------------------------------------------------------------------
-			 _       _      
-     _ __ ___   ___   __| |_   _| | ___ 
+			 _       _
+     _ __ ___   ___   __| |_   _| | ___
     | '_ ` _ \ / _ \ / _` | | | | |/ _ \
     | | | | | | (_) | (_| | |_| | |  __/
     |_| |_| |_|\___/ \__,_|\__,_|_|\___|
@@ -1208,14 +1282,21 @@ PyMODINIT_FUNC PyInit__lfo(void) {
 
     m = PyModule_Create(&lfo_module);
     if (m == NULL)
-	return NULL;
+	goto bailout;
+
+    PyObject *lfo_mod = PyImport_ImportModule("lfo");
+    if (lfo_mod == NULL)
+        goto bailout;
+    Py_DECREF(lfo_mod);
 
     Py_INCREF(&lfo_type);
-    if (PyModule_AddObjectRef(m, "LFO", (PyObject *)&lfo_type) < 0) {
-	Py_DECREF(&lfo_type);
-	Py_DECREF(m);
-	return NULL;
-    }
+    if (PyModule_AddObjectRef(m, "LFO", (PyObject *)&lfo_type) < 0) 
+        goto bailout;
 
     return m;
+
+bailout:
+    Py_XDECREF(m);
+    Py_XDECREF(&lfo_type);
+    return NULL;
 }

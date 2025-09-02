@@ -8,29 +8,31 @@ DOCSTRINGS = {
 
 This class transfers the concept of LFOs from modylar synthesizers to python.
 
-So what is an LFO?  LFO stands for "Low Frequency Oscillator".  It's a curve
-that doesn't stop and that you can pull out values from.  The simplest form is
-probably a sine wave.  Regardless of how often you travel along the circle,
-you always get consistent and reproducible values out of it.
+So what is an LFO?  LFO stands for "Low Frequency Oscillator".  It's an
+infinitely repeating curve that you can pull out values from.  The simplest
+form is probably a sine wave.  Regardless of how often you travel along the
+circle, you always get consistent and reproducible values out of it.
 
 But LFOs come in many different shapes.  Here are the ones implemented right
-now, but I'm open to suggestions to extend this list:
+now (see further below for descriptions), but I'm open to suggestions to
+extend this list:
 
-    * lfo.sine, lfo.cosine - A sine wave (and a cosine wave that I don't count extra)
-    * lfo.triangle - A triangular wave
-    * lfo.sawtooth - A sawtooth wave
-    * lfo.square - A square wave
-    * lfo.one - A wave that always outputs 1
-    * lfo.zero - A wave that always outputs 0
-    * lfo.random - A wave that outputs random values
-    * lfo.inv_<waveform> - The inverse of all these
+    * lfo.sine, lfo.cosine
+    * lfo.triangle
+    * lfo.sawtooth
+    * lfo.square
+    * lfo.one
+    * lfo.zero
+    * lfo.random
+    * lfo.inv_<waveform> - All of the above, but inverted
 
 The lfo registers the start time of its instantiation.  If no period length -
 the duration of one single wave - is provided, it defaults to 1 second.
 
-Whenever you now query a value from the lfo, it gives you the proper
-function result of that wave for this specific point in time.  Also, you can
-query all of the wave forms from the same lfo.
+Whenever you now query a value from the lfo, it gives you the proper function
+result of that wave for this specific point in time.  Also, you can query all
+of these wave forms from the same lfo.  The lfo instance basically just
+defines the heartbeat for all the waves.
 
 Each waveform can be scaled and offset.  Note, that the inverted waves use the
 same scale and offset as the normal ones, otherwise they would run out of
@@ -68,6 +70,12 @@ attributes:
         StopIteration.
 
         lfo.reset() will set the cycle counter back to 0.
+
+    default_wave: lfo.Wave = lfo.Wave.sine
+        Set the default wave form.
+
+        **Note:**  This is not a runtime attribute.  Use
+            lfo.set_default_wave(...) instead.
 
 These attributes are read-only:
 
@@ -152,12 +160,13 @@ Wave attributes:
 Additional methods and features:
 
     LFO compares properly with int, float and bool objects.
-    LFO can be used as an iterator and is iterable.
+    LFO can be used as an iterator and is iterable.  The default for these is
+    the sine wave.  Use `lfo.set_default_wave()` to change this.
 
-    Note: It will run infinitely if lfo.cycles is not set.
+    If lfo.cycles is not set, the lfo will run infinitely.
 
-    if the LFO object is called as function, it will return the value of
-    the sine wave.
+    If the LFO object is called as function, it will return the value of
+    the sine wave (or the alternative given by `lfo.set_default_wave`).
 
 """,
 
@@ -190,15 +199,17 @@ Unfreezing an already running LFO does nothing.
     'SETOFFSETS':
 """Set all offsets to `value`""",
 
-    'SETDEFAULTWAVE':
+    'DEFAULTWAVE':
 """Set the default wave for lfo(), float(lfo), int(lfo) and bool(lfo)
 
+    `LFO(default_wave=n)`
     `lfo.set_default_wave(n)`
 
 Use the `Wave` Enum instead of plain numbers.  The fields match the
 wavefunctions.  E.g.
 
     lfo.set_default_wave(Wave.inv_triangle)
+    wave = LFO(default_wave=Wave.inv_sawtooth)
 
 """,
 

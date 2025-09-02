@@ -2,7 +2,7 @@
 
 _One of my many interests is playing the modular synth.  That instrument is
 not imaginable without the help of LFOs.  They are used to control every
-controllable knob or slider, they control the speed of oscillators, the fading
+twistable knob or slider, they control the speed of oscillators, the fading
 in and out of filters, they can control each other, the possibilities are
 literally endless._
 
@@ -29,29 +29,31 @@ while orbit.cycle < 3:
 
 ## What is an LFO?
 
-So what is an LFO?  LFO stands for "Low Frequency Oscillator".  It's a curve
-that doesn't stop and that you can pull out values from.  The simplest form is
-probably a sine wave.  Regardless of how often you travel along the circle,
-you always get consistent and reproducible values out of it.
+So what is an LFO?  LFO stands for "Low Frequency Oscillator".  It's an
+infinitely repeating curve that you can pull out values from.  The simplest
+form is probably a sine wave.  Regardless of how often you travel along the
+circle, you always get consistent and reproducible values out of it.
 
 But LFOs come in many different shapes.  Here are the ones implemented right
-now, but I'm open to suggestions to extend this list:
+now (see further below for descriptions), but I'm open to suggestions to
+extend this list:
 
-    * lfo.sine, lfo.cosine - A sine wave (and a cosine wave that I don't count extra)
-    * lfo.triangle - A triangular wave
-    * lfo.sawtooth - A sawtooth wave
-    * lfo.square - A square wave
-    * lfo.one - A wave that always outputs 1
-    * lfo.zero - A wave that always outputs 0
-    * lfo.random - A wave that outputs random values
-    * lfo.inv_<waveform> - The inverse of all these
+    * lfo.sine, lfo.cosine
+    * lfo.triangle
+    * lfo.sawtooth
+    * lfo.square
+    * lfo.one
+    * lfo.zero
+    * lfo.random
+    * lfo.inv_<waveform> - All of the above, but inverted
 
 The lfo registers the start time of its instantiation.  If no period length -
 the duration of one single wave - is provided, it defaults to 1 second.
 
-Whenever you now query a value from the lfo, it gives you the proper
-function result of that wave for this specific point in time.  Also, you can
-query all of the wave forms from the same lfo.
+Whenever you now query a value from the lfo, it gives you the proper function
+result of that wave for this specific point in time.  Also, you can query all
+of these wave forms from the same lfo.  The lfo instance basically just
+defines the heartbeat for all the waves.
 
 Each waveform can be scaled and offset.  Note, that the inverted waves use the
 same scale and offset as the normal ones, otherwise they would run out of
@@ -64,18 +66,23 @@ all waves except sine and cosine variants are positioned so that they return a
 value between 0 and 1. There are per-wave parameters to change this.
 
 
-## Terminology / Parameter Names
 
-### The LFO class
+## The LFO class
 
-An instance lfo of type LFO offers the following attributes with their default
-values:
+### Instantiation
 
+```python
+wave = LFO(10, default_wave=Wave.inv_sawtooth, ...)
+```
+
+### Overview
 
 #### Primary Instancing Attributes, Read/Write
 
 * `lfo.period: float = 1.0`
-* `lfo.frequency: float = 1.0` (rw) - Internally an alias for `1 / lfo.period`
+* `lfo.frequency: float = 1.0` - Internally an alias for `1 / lfo.period`
+* `lfo.cycles: int = 0`
+* `lfo.default_wave: lfo.Wave = lfo.Wave.sine`
 
 
 #### Wave Outputs, Read-Only
@@ -89,7 +96,7 @@ values:
 * `lfo.zero: float`, `lfo.inv_zero: float`
 
 
-#### Waveform Control Parameters
+#### Waveform Control Parameters and Defaults
 
 * `lfo.sine_attenuverter: float = 1.0`
 * `lfo.sine_offset: float = 0.0`
@@ -117,7 +124,9 @@ values:
 * `lfo.cycle: int` - The number of the current cycle of the lfo
 
 
-### Primary Instancing Attributes, Read/Write
+## Detailed Description and Terminology
+
+### Primary Instancing Attributes
 
 #### `lfo.period`, `lfo.frequency`
 
@@ -130,18 +139,29 @@ second.
 
 #### `lfo.cycles`
 
-The number of periods this lfo will run through.  After it that, it will
-return the value of the end of its period until it is reset.
+The number of periods this lfo will run through.  After that, it will return
+the value of the end of its period until it is reset.
+
+The default is 0, which means the lfo will not terminate.
 
 See note at `lfo.random`.
 
 
-### Wave Outputs, Read-Only
+#### `lfo.default_wave`
+
+Set the default wave form when "casting" the lfo to `int`, `float`, `bool`, or
+when calling it with `lfo()`.
+
+Defaults to lfo.Wave.sine.
+
+
+#### Wave Outputs, Read-Only
 
 If you have ever tried making sounds on a computer, you will be very familiar
 with the available wave types.
 
-All wave forms come with an inverted version named `inv_<waveform>`.
+All wave forms come with an inverted version named `inv_<waveform>` which
+returns `1 - <waveform>`.
 
 
 #### Sine, Cosine (And important configuration parameters!)
@@ -152,7 +172,8 @@ Your off-the-mill sine and cosine waves.
 
 **Note**: In the first iteration of this library, I thought it was a good idea
 to position the sine and cosine waves in the range or 0 - 1.  This idea does
-not work well in reality, so they now deliver the values any programmer will
+not work well in reality, since sine and cosine are rarely used to scale
+things, but to rotate them, so they now deliver the values any programmer will
 expect.
 
 See `<waveform>_attenuverter` and `<waveform>_offset` below on how to change
@@ -172,13 +193,15 @@ down back to zero for the second half, creating a triangular shape.
 A sawtooth wave starts at 1 and ramps down to 0 over the full length of the
 period.
 
+Think "fading out" (`sawtooth`) and "fading in" (`inv_sawtooth`).
+
 
 #### Square
 
     `lfo.square`, `lfo.inv_square`
 
 The square wave holds 0 over a given time that defaults to half the period,
-then it switches to 1.
+then it switches to 1.  It's basically a timed switch.
 
 See `lfo.pw` and `lfo.pw_offset` below for some configuration options.
 
@@ -200,11 +223,11 @@ interface.
 The random wave contains values that are... well, random.  They are not a
 function of time.
 
-Note that `inv_random` makes zero sense but it still implemented to provide a
+**Note:** `inv_random` makes zero sense but it still implemented to provide a
 consistent interface.
 
-Note: A side effect of being independent of time is, that this wave will not
-"stop" once the all cycles have finished.
+**Note 2:** A side effect of being independent of time is, that this wave will
+not "stop" once the all cycles have finished.
 
 ### Waveform Control Parameters
 
@@ -227,22 +250,20 @@ values between -1 and 1.  If you want to use them for scaling something
 instead, you set their attenuverter to 0.5.  Now they return values from -0.5
 to 0.5.  Then you offset them by 0.5 and you have your scaling factor.
 
+```
+lfo = LFO(period, sine_attenuverter=0.5, sine_offset=0.5, ...)
+```
+
 So the attenuverter and offset alwasy return
 
     `wave * attenuverter + offset`
 
-```
-lfo = LFO(period, sine_attenuverter=1, sine_offset=0, ...)
-```
-
-This first scales the sine wave back to the range of -1 to 1, and then removes
-the position shift from the defaults.
-
-Even `lfo.one` and `lfo.zero` are impacted by these.
+**Note:** Even `lfo.one` and `lfo.zero` are impacted by these.
 
 #### `lfo.pw` and `lfo.pw_offset`
 
-**NOTE**: Mighth be renamed to `square_pw` and `square_pw_offset`.
+**NOTE**: Mighth be renamed to `square_pw` and `square_pw_offset` in future
+versions.
 
 *pw* stands for pulse width.  In a synth, it's the duration a signal is up or
 down.  By default, the square wave is up for half of the period, then switches
@@ -305,15 +326,21 @@ Note that the lfo's start time shifts so, that the wave it outputs is
 continuous.  It will **not** jump once it's reactivated.
 
 If you prefer a function interface over the status attribute `lfo.frozen`
-above, use `lfo.is_frozen()`, which returns a bool.
+described further above, use `lfo.is_frozen()`, which returns a bool.
 
 #### `lfo.set_attenuverters(amount: double) -> None`
 
 Set all attenuverters to the given amount.
 
+**Note:** This might require sine and cosine attenuverters to be set
+additionally.
+
 #### `lfo.set_offsets(amount: double) -> None`
 
 Set all offsets to the given amount.
+
+**Note:** This might require sine and cosine attenuverters to be set
+additionally.
 
 #### `lfo.rewind(amount: double) -> None`
 
@@ -321,7 +348,19 @@ Rewind the lfo by the given amount in seconds.
 
 #### `lfo.skip(amount: double) -> None`
 
-Skip the lfo by the given amount in seconds.
+Skip the lfo forward in time by the given amount in seconds.
+
+#### `lfo.set_default_wave(n) -> None`
+
+_This is the function version of passing `default_wave=` to the constructor or
+setting it during runtime._
+
+Set the default wave for lfo(), float(lfo), int(lfo) and bool(lfo)
+(See Python Magic Methods below).
+
+This accepts an `int`, but the `lfo.Wave` enum should be used instead.
+
+    lfo.set_default_wave(Wave.inv_triangle)
 
 
 ### Python Magic Methods
@@ -329,38 +368,41 @@ Skip the lfo by the given amount in seconds.
 LFO instances properly convert to `bool`, `int` and `float` and can thus be
 directly compared to all of them.
 
-Note that as of now, the `sine` curve is used.  This might be configurable
-later...  FIXME
+**Note:** By default, the `sine` wave is returned.  This is configurable by
+`lfo.set_default_wave(n)` described above.
 
 So e.g. `bool(lfo)` is the same as `bool(lfo.sine)`.
 
 LFO instances also provide `__call__`, so if you prefer the function
-interface, use `lfo()` to fetch the sine value from the lfo.
+interface, use `lfo()` to fetch the sine value (or configured default wave)
+from the lfo.
 
 In addition, lfo is both an iterator and iterable.
 
 ```python
-from lfo import LFO
+from lfo import LFO, Wave
 from time import sleep
 
-l = LFO(10)
+l = LFO(10, default_wave=Wave.inv_sawtooth)
 next(l)
 >>> 0.2457116119475273
 
+l.reset()
 for i, v in zip(range(10), l):
     print(i, v)
-    sleep(0.25)
+    sleep(1)
 
->>> 0 -0.9886300710248443
->>> 1 -0.9999805639536082
->>> 2 -0.9866305171025227
->>> 3 -0.9488620508175084
->>> 4 -0.8876400367987355
->>> 5 -0.804481428399949
->>> 6 -0.7013677240075332
->>> 7 -0.5811011443144513
->>> 8 -0.44612926127688374
->>> 9 -0.3002298909230939
+>>> 0 1.202999999616594e-07
+>>> 1 0.10007948659999999
+>>> 2 0.20009758980000003
+>>> 3 0.3001155295
+>>> 4 0.4001310015999999
+>>> 5 0.5001526283
+>>> 6 0.6002004129
+>>> 7 0.7002980965
+>>> 8 0.8003155583
+>>> 9 0.9004469224999999
+>>> 10 0.00046909910000003663
 ```
 
 

@@ -18,6 +18,7 @@ def lfo1():
 def lfo10():
     return LFO(10)
 
+
 def test_defaults(lfo1):
     assert lfo1.period == 1
     assert lfo1.frequency == 1
@@ -177,6 +178,7 @@ def test_square(lfo1):
     assert square == 0
     assert inv_square == 1
 
+
 def test_one_and_zero(lfo1):
     one, inv_one, zero, inv_zero = lfo1.one, lfo1.inv_one, lfo1.zero, lfo1.inv_zero
 
@@ -191,11 +193,13 @@ def test_one_and_zero(lfo1):
     assert zero == 0.0
     assert inv_zero == 1.0
 
+
 def test_random(lfo1):
     assert approx(lfo1.random, abs=0.001) != lfo1.random
 
     rand, inv_rand = lfo1.random, lfo1.inv_random
     assert rand != 1 - inv_rand
+
 
 def test_attenuverters(lfo1):
     lfo1.set_attenuverters(2)
@@ -234,6 +238,7 @@ def test_attenuverters(lfo1):
     assert approx(inv_zero, abs=0.025) == 2.0
     assert any(lfo1.random > 1 for _ in range(100))
     assert any(lfo1.random > 1 for _ in range(100))
+
 
 def test_offsets(lfo1):
     lfo1.set_offsets(1)
@@ -285,7 +290,6 @@ def test_cycles(lfo1):
         square, inv_square,
         one, inv_one,
         zero, inv_zero,
-        random, inv_random,
     ) = (
         lfo1.sine, lfo1.inv_sine,
         lfo1.cosine, lfo1.inv_cosine,
@@ -294,7 +298,6 @@ def test_cycles(lfo1):
         lfo1.square, lfo1.inv_square,
         lfo1.one, lfo1.inv_one,
         lfo1.zero, lfo1.inv_zero,
-        lfo1.random, lfo1.inv_random,
     )
 
     assert approx(sine, abs=0.025) == 0.0
@@ -312,6 +315,7 @@ def test_cycles(lfo1):
     assert approx(zero, abs=0.025) == 0.0
     assert approx(inv_zero, abs=0.025) == 1.0
 
+
 def test_set_default_wave(lfo1):
     lfo1.set_default_wave(Wave.triangle)
     sleep(0.5)
@@ -319,8 +323,14 @@ def test_set_default_wave(lfo1):
 
     lfo1.set_default_wave(Wave.inv_sawtooth)
     lfo1.reset()
+    assert approx(lfo1(), abs=0.025) == 0.0
     sleep(0.5)
     assert approx(lfo1(), abs=0.025) == 0.5
+
+    lfo = LFO(default_wave=Wave.sawtooth)
+    assert approx(lfo(), abs=0.025) == 1.0
+    sleep(0.5)
+    assert approx(lfo(), abs=0.025) == 0.5
 
 
 def test_richcompare(lfo1):
@@ -331,6 +341,7 @@ def test_richcompare(lfo1):
     assert lfo1 > 0.5
     assert lfo1 < lfo1
     assert not (lfo1 > lfo1)
+
 
 def test_conversions(lfo1):
     lfo1.set_default_wave(Wave.inv_sawtooth)
@@ -344,6 +355,7 @@ def test_conversions(lfo1):
     assert float(lfo1) > 1.0
     assert int(lfo1) == 1
     assert bool(lfo1)
+
 
 def test_rewind_skip(lfo1):
     lfo1.reset()
@@ -359,5 +371,3 @@ def test_rewind_skip(lfo1):
         lfo1.rewind('xyzzy')
     with raises(TypeError):
         lfo1.skip('xyzzy')
-
-
