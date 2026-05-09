@@ -6,21 +6,21 @@ import pygame._sdl2 as sdl2
 from lfo import LFO
 
 TITLE = 'pygame minimal template'
-SCREEN = pygame.Rect(0, 0, 1024, 768)
+SCREEN = pygame.Rect(0, 0, 512, 512)
 FPS = 60
 DT_MAX = 3 / FPS
 
 clock = pygame.time.Clock()
-window = pygame.Window(title=TITLE, fullscreen_desktop=True)
+window = pygame.Window(title=TITLE, size=SCREEN.size)
 renderer = sdl2.Renderer(window)
 renderer.logical_size = SCREEN.size
 
-RADIUS = 256
+RADIUS = 200
 SATTELITE_RADIUS = 32
 
 orbit = LFO(10, sine_offset=0.0, cosine_offset=0.0)
 sattelite = LFO(5, sine_offset=0.0, cosine_offset=0.0)
-speedo = LFO(20, sine_attenuverter=0.3, sine_offset=1.0, cosine_attenuverter=0.3, cosine_offset=1.0)
+speedo = LFO(20, triangle_attenuverter=3, triangle_offset=3.0, cosine_attenuverter=1, cosine_offset=3.0)
 color = LFO(3)
 
 rect = pygame.Rect(0, 0, 10, 10)
@@ -35,6 +35,11 @@ while running:
         elif e.type == pygame.KEYDOWN:
             if e.key == pygame.K_ESCAPE:
                 running = False
+            elif e.key == pygame.K_SPACE:
+                orbit.reset()
+                sattelite.reset()
+                speedo.reset()
+                color.reset()
 
     renderer.draw_color = 'darkslategrey'
     renderer.clear()
@@ -53,7 +58,11 @@ while running:
     renderer.draw_color = ('cyan', 'orange')[int(color.square)]
     renderer.draw_rect(rect.move_to(center=(round(x), round(y))))
 
-    sattelite.period = speedo.sine
+    sattelite.period = speedo.inv_triangle
+    x = speedo.normalized * SCREEN.width
+    y = speedo.inv_triangle * SCREEN.height / (speedo.triangle_attenuverter + speedo.triangle_offset)
+    renderer.draw_color = 'white'
+    renderer.draw_rect(rect.move_to(center=(round(x), round(SCREEN.height - y))))
 
     x = orbit.sine * 2 * RADIUS + SCREEN.centerx + sattelite.sine * SATTELITE_RADIUS
     y = orbit.cosine * 2 * RADIUS + SCREEN.centery + sattelite.cosine * SATTELITE_RADIUS
