@@ -1,3 +1,7 @@
+# v0.0.7
+
+- No changes, need version bump to provide python 3.15 wheels.
+
 # v0.0.6
 
 - Doc cleanups
